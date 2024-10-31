@@ -1,0 +1,2 @@
+输入文件 长宽分割数量 box离mesh最高的距离 box最高点到mesh最高点的距离 box最低点到mesh最低点的距离
+input.obj 1000 0.1 20 1

@@ -1,7 +1,7 @@
 use clap::Parser;
 use obj::{Obj, Position};
 use std::fs::{self, File};
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use support_type::Area;
 // const SPLIT: usize = 256;

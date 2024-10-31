@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    io::{self, Write},
-};
+use std::io::{self, Write};
 
 use smallvec::SmallVec;
 
@@ -20,6 +17,7 @@ pub struct Area {
     // a: SmallVec<[usize; 15]>,
     base: [f32; 2],
     zmin: f32,
+    #[allow(dead_code)]
     zmax: f32,
     block: f32,
 }
@@ -73,7 +71,7 @@ impl Area {
     pub fn write_to_box_x<W: Write>(&self, file: &mut W) -> io::Result<()> {
         for ((x, y), _) in self.data.iter().map(|(idx, (_, h))| (idx, *h)) {
             let [x, _] = self.pos([x, y]);
-            write!(file, "{} ", (x + 0.5 * self.block),)?;
+            write!(file, "{} ", (x + 0.5 * self.block) - self.block * 0.5)?;
         }
         write!(file, "\n")?;
         Ok(())
@@ -81,14 +79,14 @@ impl Area {
     pub fn write_to_box_y<W: Write>(&self, file: &mut W) -> io::Result<()> {
         for ((x, y), _) in self.data.iter().map(|(idx, (_, h))| (idx, *h)) {
             let [_, y] = self.pos([x, y]);
-            write!(file, "{} ", -(y + 0.5 * self.block))?;
+            write!(file, "{} ", -(y + 0.5 * self.block) - self.block * 0.5)?;
         }
         write!(file, "\n")?;
         Ok(())
     }
     pub fn write_to_box_z<W: Write>(&self, file: &mut W) -> io::Result<()> {
-        for (_, z) in self.data.iter().map(|(idx, (_, h))| (idx, *h)) {
-            write!(file, "{} ", (z + self.zmin) / 2.)?;
+        for (_, _z) in self.data.iter().map(|(idx, (_, h))| (idx, *h)) {
+            write!(file, "{} ", self.zmin)?;
         }
         write!(file, "\n")?;
         Ok(())
@@ -110,7 +108,7 @@ impl Area {
 }
 #[test]
 fn write() {
-    let mut f = fs::OpenOptions::new()
+    let mut f = std::fs::OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
