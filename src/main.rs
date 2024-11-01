@@ -92,6 +92,7 @@ fn main() {
         min.position[2] - args.offs_low,
         max.position[2] + args.offs_high,
     );
+    // here
     time!(fa);
     for (idx, (a, b, c)) in faces.iter().copied().enumerate() {
         let min = min_p(
