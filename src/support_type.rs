@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use smallvec::SmallVec;
 
-use crate::vec2d::Vec2d;
+use crate::{disable, vec2d::Vec2d};
 
 // 0####1@@@@
 // #####@@@@@
@@ -19,14 +19,14 @@ pub struct Area {
     zmin: f32,
     #[allow(dead_code)]
     zmax: f32,
-    block: f32,
+    block_width: f32,
 }
 impl Area {
-    pub fn new(l: usize, base: [f32; 2], block: f32, zmin: f32, zmax: f32) -> Self {
+    pub fn new(l: usize, base: [f32; 2], block_width: f32, zmin: f32, zmax: f32) -> Self {
         Self {
             data: Vec2d::new_filled(l, l, (SmallVec::new(), f32::NEG_INFINITY)),
             base,
-            block,
+            block_width,
             zmin,
             zmax,
         }
@@ -37,15 +37,18 @@ impl Area {
         assert!(dx >= 0.);
         assert!(dy >= 0.);
         [
-            (dx / self.block).floor() as usize,
-            (dy / self.block).floor() as usize,
+            (dx / self.block_width).floor() as usize,
+            (dy / self.block_width).floor() as usize,
         ]
     }
-    pub fn pos(&self, pos: [usize; 2]) -> [f32; 2] {
+    pub fn pos(&self, block: [usize; 2]) -> [f32; 2] {
         [
-            (pos[0] as f32 * self.block + self.base[0]),
-            (pos[1] as f32 * self.block + self.base[1]),
+            (block[0] as f32 * self.block_width + self.base[0]),
+            (block[1] as f32 * self.block_width + self.base[1]),
         ]
+    }
+    pub fn height(&self, block: [usize; 2]) -> f32 {
+        self.data[block].1
     }
     pub fn write_to_obj<W: Write>(&self, file: &mut W) -> io::Result<()> {
         for ((x, y), z) in self.data.iter().map(|(idx, (_, h))| (idx, *h)) {
@@ -53,9 +56,9 @@ impl Area {
             write!(
                 file,
                 "v {} {} {}\n",
-                (x + 0.5 * self.block),
+                (x + 0.5 * self.block_width),
+                (y + 0.5 * self.block_width),
                 z,
-                -(y + 0.5 * self.block)
             )?;
         }
         Ok(())
@@ -65,13 +68,17 @@ impl Area {
     pub fn write_info<W: Write>(&self, file: &mut W) -> io::Result<()> {
         writeln!(file, "lowest {}", self.zmin)?;
         writeln!(file, "base xy {:?}", self.base)?;
-        writeln!(file, "block_size {}", self.block)?;
+        writeln!(file, "block_size {}", self.block_width)?;
         Ok(())
     }
     pub fn write_to_box_x<W: Write>(&self, file: &mut W) -> io::Result<()> {
         for ((x, y), _) in self.data.iter().map(|(idx, (_, h))| (idx, *h)) {
             let [x, _] = self.pos([x, y]);
-            write!(file, "{} ", (x + 0.5 * self.block) - self.block * 0.5)?;
+            write!(
+                file,
+                "{} ",
+                (x + 0.5 * self.block_width) - self.block_width * 0.5
+            )?;
         }
         write!(file, "\n")?;
         Ok(())
@@ -79,7 +86,11 @@ impl Area {
     pub fn write_to_box_y<W: Write>(&self, file: &mut W) -> io::Result<()> {
         for ((x, y), _) in self.data.iter().map(|(idx, (_, h))| (idx, *h)) {
             let [_, y] = self.pos([x, y]);
-            write!(file, "{} ", -(y + 0.5 * self.block) - self.block * 0.5)?;
+            write!(
+                file,
+                "{} ",
+                -(y + 0.5 * self.block_width) - self.block_width * 0.5
+            )?;
         }
         write!(file, "\n")?;
         Ok(())
@@ -93,7 +104,7 @@ impl Area {
     }
     pub fn write_to_box_width<W: Write>(&self, file: &mut W) -> io::Result<()> {
         for _ in self.data.iter() {
-            write!(file, "{} ", self.block)?;
+            write!(file, "{} ", self.block_width)?;
         }
         write!(file, "\n")?;
         Ok(())
@@ -117,4 +128,15 @@ fn write() {
     let mut a1 = Area::new(5, [0., 0.], 2., 0., 0.);
     a1.data.iter_mut().for_each(|(_, (_, a))| *a = 4.5);
     a1.write_to_obj(&mut f).unwrap();
+}
+
+// phy
+impl Area {
+    pub fn collide_point(&self, pos: [f32; 3]) -> bool {
+        let [x, y, z] = pos;
+        disable!(pos);
+        let block = self.in_block([x, y]);
+        let height = self.height(block);
+        height < z
+    }
 }

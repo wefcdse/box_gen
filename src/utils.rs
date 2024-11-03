@@ -7,3 +7,13 @@ macro_rules! time {
         ::std::println!("{}: {:?}", $info, ::std::time::Instant::elapsed(&$st));
     };
 }
+#[macro_export]
+macro_rules! disable {
+    ($a:ident) => {
+        #[allow(unused_variables)]
+        let $a = {
+            struct Disabled;
+            Disabled
+        };
+    };
+}
