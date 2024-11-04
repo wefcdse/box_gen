@@ -137,6 +137,24 @@ impl Area {
         disable!(pos);
         let block = self.in_block([x, y]);
         let height = self.height(block);
-        height < z
+        height >= z
     }
+    pub fn collide_area(&self, pos: [f32; 2], height: f32, r: f32) -> bool {
+        let ([x, y], z) = (pos, height);
+        disable!(pos, height);
+        let block_min = [x - r, y - r];
+        let block_max = [x + r, y + r];
+        let idx_min = self.in_block(block_min);
+        let idx_max = self.in_block(block_max);
+        for x in idx_min[0]..idx_max[0] {
+            for y in idx_min[1]..idx_max[1] {
+                let height = self.height([x, y]);
+                if height >= z {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+    fn collide_line(p1: [f32; 3], pos: [f32; 3]) {}
 }
