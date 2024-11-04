@@ -25,16 +25,16 @@ pub fn gen_area(
     area: &mut Area,
     faces: &[(usize, usize, usize)],
     vertices: &[Position],
-    offs_high: f32,
-    offs: f32,
+    offs_high: f64,
+    offs: f64,
     max: &Position,
 ) {
     time!(fa);
     for (idx, (a, b, c)) in faces.iter().copied().enumerate() {
         let min = min_p(min_p(vertices[a], vertices[b]), vertices[c]);
         let max = max_p(max_p(vertices[a], vertices[b]), vertices[c]);
-        let min_xy = [min.position[0], min.position[1]];
-        let max_xy = [max.position[0], max.position[1]];
+        let min_xy = [min.position[0] as f64, min.position[1] as f64];
+        let max_xy = [max.position[0] as f64, max.position[1] as f64];
 
         let min_idx = area.in_block(min_xy);
         let max_idx = area.in_block(max_xy);
@@ -55,13 +55,13 @@ pub fn gen_area(
             for f in contained_faces.iter().copied() {
                 let (a, b, c) = faces[f];
                 let max = max_p(max_p(vertices[a], vertices[b]), vertices[c]);
-                *height = height.max(max.position[2]);
+                *height = height.max(max.position[2] as f64);
             }
         });
     time!(gen, "gen height");
     area.data.iter_mut().for_each(|(_, (_, height))| {
-        if *height == f32::NEG_INFINITY {
-            *height = max.position[2] + offs_high;
+        if *height == f64::NEG_INFINITY {
+            *height = max.position[2] as f64 + offs_high;
         } else {
             *height += offs;
         }

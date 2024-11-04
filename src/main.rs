@@ -6,7 +6,7 @@ use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use support_type::Area;
 // const SPLIT: usize = 256;
-// const OFFS: f32 = 20.;
+// const OFFS: f64 = 20.;
 pub mod cacl;
 pub mod support_type;
 pub mod utils;
@@ -15,9 +15,9 @@ pub mod vec2d;
 struct Args {
     input: PathBuf,
     split: usize,
-    offs: f32,
-    offs_high: f32,
-    offs_low: f32,
+    offs: f64,
+    offs_high: f64,
+    offs_low: f64,
 }
 fn main() {
     time!(all);
@@ -83,16 +83,16 @@ fn main() {
     let split = args.split;
 
     let block_size = ((max.position[0] - min.position[0]).abs())
-        .max((max.position[1] - min.position[1]).abs())
-        / split as f32;
-    let base_xy = [min.position[0], min.position[1]];
+        .max((max.position[1] - min.position[1]).abs()) as f64
+        / split as f64;
+    let base_xy = [min.position[0] as f64, min.position[1] as f64];
 
     let mut area = Area::new(
         split,
         base_xy,
         block_size,
-        min.position[2] - args.offs_low,
-        max.position[2] + args.offs_high,
+        min.position[2] as f64 - args.offs_low,
+        max.position[2] as f64 + args.offs_high,
     );
     // here
     gen_area(
