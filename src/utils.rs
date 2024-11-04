@@ -10,10 +10,13 @@ macro_rules! time {
 #[macro_export]
 macro_rules! disable {
     ($($a:ident),*) => {
-       $( #[allow(unused_variables)]
+        $(
+        #[allow(unused_variables)]
         let $a = {
             struct Disabled;
             Disabled
-        };)*
+        };
+        ::core::mem::drop($a);
+        )*
     };
 }
