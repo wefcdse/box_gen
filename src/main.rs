@@ -1,10 +1,12 @@
+use cacl::lerp::Lerp;
 use cacl::{gen_area, max_p, min_p};
 use clap::Parser;
 use obj::{Obj, Position};
 use std::fs::{self, File};
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::PathBuf;
 use support_type::Area;
+use utils::index_xyz::*;
 // const SPLIT: usize = 256;
 // const OFFS: f64 = 20.;
 pub mod cacl;
@@ -83,17 +85,17 @@ fn main() {
     // dbg!(max, min);
     let split = args.split;
 
-    let block_size = ((max.position[0] - min.position[0]).abs())
-        .max((max.position[1] - min.position[1]).abs()) as f64
+    let block_size = ((max.position[X] - min.position[X]).abs())
+        .max((max.position[Y] - min.position[Y]).abs()) as f64
         / split as f64;
-    let base_xy = [min.position[0] as f64, min.position[1] as f64];
+    let base_xy = [min.position[X] as f64, min.position[Y] as f64];
 
     let mut area = Area::new(
         split,
         base_xy,
         block_size,
-        min.position[2] as f64 - args.offs_low,
-        max.position[2] as f64 + args.offs_high,
+        min.position[Z] as f64 - args.offs_low,
+        max.position[Z] as f64 + args.offs_high,
     );
     // here
     gen_area(
@@ -115,4 +117,49 @@ fn main() {
     area.write_to_box_height(&mut output_box).unwrap();
     time!(write, "write to file");
     time!(all, "total");
+
+    {
+        let mut output_collide = {
+            let f = fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open("cld.obj")
+                .unwrap();
+            BufWriter::new(f)
+        };
+        let mut output_no_collide = {
+            let f = fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open("no_cld.obj")
+                .unwrap();
+            BufWriter::new(f)
+        };
+        for _ in 0..50000 {
+            let point = {
+                let delta_p: [f64; 3] = rand::random();
+                [
+                    (min.position[X], max.position[X]).lerp(delta_p[X]),
+                    (min.position[Y], max.position[Y]).lerp(delta_p[Y]),
+                    (
+                        min.position[Z] - args.offs_low as f32,
+                        max.position[Z] + args.offs_high as f32,
+                    )
+                        .lerp(delta_p[Z]),
+                ]
+            };
+            if area.collide_point(point) {
+                writeln!(output_collide, "v {} {} {}", point[X], point[Y], point[Z]).unwrap();
+            } else {
+                writeln!(
+                    output_no_collide,
+                    "v {} {} {}",
+                    point[X], point[Y], point[Z]
+                )
+                .unwrap();
+            }
+        }
+    }
 }
