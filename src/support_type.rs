@@ -46,6 +46,13 @@ impl Area {
             (dy / self.block_width).floor() as usize,
         ]
     }
+
+    pub fn in_area(&self, pos: [f64; 2]) -> bool {
+        pos[X] >= self.base[X]
+            && pos[X] <= self.base[X] + self.block_width * self.data.x() as f64
+            && pos[Y] >= self.base[Y]
+            && pos[Y] <= self.base[Y] + self.block_width * self.data.y() as f64
+    }
     pub fn pos(&self, block: [usize; 2]) -> [f64; 2] {
         [
             (block[X] as f64 * self.block_width + self.base[X]),
@@ -179,13 +186,18 @@ impl Area {
                 (delta_offs_x - delta_offs_y).abs().min(next_delta_offs) * fix_offs_rate;
             assert!(delta_offs_fix > 0.);
             assert!(next_delta_offs > 0.);
-
-            if self.collide_point((p1, p2).lerp(delta + next_delta_offs - delta_offs_fix))
-                || self.collide_point((p1, p2).lerp(delta + next_delta_offs + delta_offs_fix))
-            {
+            let delta_low = delta + next_delta_offs - delta_offs_fix;
+            let delta_high = delta + next_delta_offs + delta_offs_fix;
+            if delta_low < 1. && self.collide_point((p1, p2).lerp(delta_low)) {
                 return true;
             }
-            delta = delta + next_delta_offs + delta_offs_fix
+            if delta_high < 1. && self.collide_point((p1, p2).lerp(delta_high)) {
+                return true;
+            }
+            delta = delta_high;
+            if delta >= 1. {
+                break;
+            }
         }
         false
     }

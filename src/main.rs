@@ -162,4 +162,92 @@ fn main() {
             }
         }
     }
+    {
+        let mut output_collide = {
+            let f = fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open("cld_line.obj")
+                .unwrap();
+            BufWriter::new(f)
+        };
+        let mut output_no_collide = {
+            let f = fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open("no_cld_line.obj")
+                .unwrap();
+            BufWriter::new(f)
+        };
+        let mut vec_cld = Vec::new();
+        let mut vec_no_cld = Vec::new();
+        let mut counter_cld = 1;
+        let mut counter_no_cld = 1;
+        for _ in 0..100000 {
+            let point1 = {
+                let delta_p: [f64; 3] = rand::random();
+                [
+                    (min.position[X], max.position[X]).lerp(delta_p[X]),
+                    (min.position[Y], max.position[Y]).lerp(delta_p[Y]),
+                    (
+                        min.position[Z] - args.offs_low as f32,
+                        max.position[Z] + args.offs_high as f32,
+                    )
+                        .lerp(delta_p[Z]),
+                ]
+            };
+            let point2 = {
+                let delta_p: [f64; 3] = rand::random();
+                [
+                    (min.position[X], max.position[X]).lerp(delta_p[X]),
+                    (min.position[Y], max.position[Y]).lerp(delta_p[Y]),
+                    (
+                        min.position[Z] - args.offs_low as f32,
+                        max.position[Z] + args.offs_high as f32,
+                    )
+                        .lerp(delta_p[Z]),
+                ]
+            };
+            if area.collide_line(point1, point2) {
+                writeln!(
+                    output_collide,
+                    "v {} {} {}",
+                    point1[X], point1[Y], point1[Z]
+                )
+                .unwrap();
+                writeln!(
+                    output_collide,
+                    "v {} {} {}",
+                    point2[X], point2[Y], point2[Z]
+                )
+                .unwrap();
+                vec_cld.push(counter_cld);
+                counter_cld += 2;
+            } else {
+                writeln!(
+                    output_no_collide,
+                    "v {} {} {}",
+                    point1[X], point1[Y], point1[Z]
+                )
+                .unwrap();
+                writeln!(
+                    output_no_collide,
+                    "v {} {} {}",
+                    point2[X], point2[Y], point2[Z]
+                )
+                .unwrap();
+                vec_no_cld.push(counter_no_cld);
+                counter_no_cld += 2;
+            }
+        }
+
+        for i in vec_cld.iter() {
+            writeln!(output_collide, "l {} {}", i, i + 1).unwrap();
+        }
+        for i in vec_no_cld.iter() {
+            writeln!(output_no_collide, "l {} {}", i, i + 1).unwrap();
+        }
+    }
 }
