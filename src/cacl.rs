@@ -84,21 +84,75 @@ pub mod lerp {
             a * (1. - delta) + b * delta
         }
     }
+
+    impl Lerp for ([f64; 2], [f64; 2]) {
+        type Inner = [f64; 2];
+
+        type Float = f64;
+
+        fn lerp(self, delta: Self::Float) -> Self::Inner {
+            let ([x1, y1], [x2, y2]) = self;
+            [(x1, x2).lerp(delta), (y1, y2).lerp(delta)]
+        }
+    }
+    impl Lerp for ([f64; 3], [f64; 3]) {
+        type Inner = [f64; 3];
+
+        type Float = f64;
+
+        fn lerp(self, delta: Self::Float) -> Self::Inner {
+            let ([x1, y1, z1], [x2, y2, z2]) = self;
+            [
+                (x1, x2).lerp(delta),
+                (y1, y2).lerp(delta),
+                (z1, z2).lerp(delta),
+            ]
+        }
+    }
     trait ExtractInner2<Inner>: Copy {
         fn extract(self) -> (Inner, Inner);
     }
-    impl<T: Into<f64> + Copy> ExtractInner2<f64> for (T, T) {
-        fn extract(self) -> (f64, f64) {
-            let (a, b) = self;
-            (a.into(), b.into())
-        }
+
+    macro_rules! impl_into {
+        ($a:tt) => {
+            impl ExtractInner2<f64> for ($a, $a) {
+                fn extract(self) -> (f64, f64) {
+                    let (a, b) = self;
+                    (a.into(), b.into())
+                }
+            }
+            impl ExtractInner2<f64> for [$a; 2] {
+                fn extract(self) -> (f64, f64) {
+                    let [a, b] = self;
+                    (a.into(), b.into())
+                }
+            }
+        };
     }
-    impl<T: Into<f64> + Copy> ExtractInner2<f64> for [T; 2] {
-        fn extract(self) -> (f64, f64) {
-            let [a, b] = self;
-            (a.into(), b.into())
-        }
-    }
+    impl_into!(i8);
+    impl_into!(i16);
+    impl_into!(i32);
+
+    impl_into!(u8);
+    impl_into!(u16);
+    impl_into!(u32);
+    // impl_into!(i64);
+    // impl_into!(f128);
+    impl_into!(f32);
+    impl_into!(f64);
+
+    // impl ExtractInner2<f64> for (i32, i32) {
+    //     fn extract(self) -> (f64, f64) {
+    //         let (a, b) = self;
+    //         (a.into(), b.into())
+    //     }
+    // }
+    // impl ExtractInner2<f64> for [i32; 2] {
+    //     fn extract(self) -> (f64, f64) {
+    //         let [a, b] = self;
+    //         (a.into(), b.into())
+    //     }
+    // }
 
     #[test]
     fn l() {

@@ -1,6 +1,5 @@
 use std::io::{self, Write};
 
-use rand::random;
 use smallvec::SmallVec;
 
 use crate::{
@@ -209,6 +208,8 @@ pub fn next_step(first: f64, second: f64, now: f64, width: f64, base: f64) -> f6
 
 #[test]
 fn r() {
+    use rand::random;
+
     let gen_rand = false;
     let test_pos = true;
     let test_neg = true;
