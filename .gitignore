@@ -1,3 +1,5 @@
 /target
 *.blend*
+out*.*
 out.*
+*.zip

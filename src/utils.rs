@@ -23,41 +23,60 @@ macro_rules! disable {
     };
 }
 
-pub mod lerp {
-    pub trait Lerp: Copy {
-        type Inner;
-        type Float;
-        fn lerp(self, delta: Self::Float) -> Self::Inner;
-    }
-    impl<T: ExtractInner2<f64>> Lerp for T {
-        type Inner = f64;
+pub mod index_xyz {
+    use std::ops::{Index, IndexMut};
 
-        type Float = f64;
+    #[derive(Debug, Clone, Copy, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
+    pub struct X;
+    #[derive(Debug, Clone, Copy, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
+    pub struct Y;
+    #[derive(Debug, Clone, Copy, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
+    pub struct Z;
+    // impl<const L: usize, T> Index<X> for [T; L] {
+    //     type Output = T;
 
-        fn lerp(self, delta: Self::Float) -> Self::Inner {
-            let (a, b) = self.extract();
-            a * (1. - delta) + b * delta
-        }
-    }
-    trait ExtractInner2<Inner>: Copy {
-        fn extract(self) -> (Inner, Inner);
-    }
-    impl<T: Into<f64> + Copy> ExtractInner2<f64> for (T, T) {
-        fn extract(self) -> (f64, f64) {
-            let (a, b) = self;
-            (a.into(), b.into())
-        }
-    }
-    impl<T: Into<f64> + Copy> ExtractInner2<f64> for [T; 2] {
-        fn extract(self) -> (f64, f64) {
-            let [a, b] = self;
-            (a.into(), b.into())
-        }
-    }
+    //     fn index(&self, _: X) -> &Self::Output {
+    //         &self[0]
+    //     }
+    // }
+    // impl<const L: usize, T> IndexMut<X> for [T; L] {
+    //     fn index_mut(&mut self, _: X) -> &mut Self::Output {
+    //         &mut self[0]
+    //     }
+    // }
+    macro_rules! implthis {
+        ($a:tt, $b:literal) => {
+            impl<const L: usize, T> Index<$a> for [T; L] {
+                type Output = T;
 
+                fn index(&self, _: $a) -> &Self::Output {
+                    &self[$b]
+                }
+            }
+            impl<const L: usize, T> IndexMut<$a> for [T; L] {
+                fn index_mut(&mut self, _: $a) -> &mut Self::Output {
+                    &mut self[$b]
+                }
+            }
+        };
+    }
+    implthis!(X, 0);
+    implthis!(Y, 1);
+    implthis!(Z, 2);
     #[test]
-    fn l() {
-        assert_eq!((1i16, 0).lerp(0.5), 0.5);
-        assert!(((1.3, -2.5).lerp(0.45) - -0.41) < 0.000001);
+    fn t() {
+        let mut a = [318, 15, 5];
+        assert_eq!(a[0], a[X]);
+        assert_eq!(a[1], a[Y]);
+        assert_eq!(a[2], a[Z]);
+        assert!(*(&mut a[0]) == *(&mut a[X]));
+        assert!(*(&mut a[1]) == *(&mut a[Y]));
+        assert!(*(&mut a[2]) == *(&mut a[Z]));
+
+        let mut a = [318, 15];
+        assert_eq!(a[0], a[X]);
+        assert_eq!(a[1], a[Y]);
+        assert!(*(&mut a[0]) == *(&mut a[X]));
+        assert!(*(&mut a[1]) == *(&mut a[Y]));
     }
 }

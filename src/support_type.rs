@@ -1,8 +1,14 @@
 use std::io::{self, Write};
 
+use rand::random;
 use smallvec::SmallVec;
 
-use crate::{disable, utils::lerp::Lerp, vec2d::Vec2d};
+use crate::{
+    cacl::{lerp::Lerp, rempos::rempos},
+    disable,
+    utils::index_xyz::*,
+    vec2d::Vec2d,
+};
 
 // 0####1@@@@
 // #####@@@@@
@@ -32,8 +38,8 @@ impl Area {
         }
     }
     pub fn in_block(&self, pos: [f64; 2]) -> [usize; 2] {
-        let dx = pos[0] - self.base[0];
-        let dy = pos[1] - self.base[1];
+        let dx = pos[X] - self.base[X];
+        let dy = pos[Y] - self.base[Y];
         assert!(dx >= 0.);
         assert!(dy >= 0.);
         [
@@ -43,8 +49,8 @@ impl Area {
     }
     pub fn pos(&self, block: [usize; 2]) -> [f64; 2] {
         [
-            (block[0] as f64 * self.block_width + self.base[0]),
-            (block[1] as f64 * self.block_width + self.base[1]),
+            (block[X] as f64 * self.block_width + self.base[X]),
+            (block[Y] as f64 * self.block_width + self.base[Y]),
         ]
     }
     pub fn height(&self, block: [usize; 2]) -> f64 {
@@ -117,18 +123,18 @@ impl Area {
         Ok(())
     }
 }
-#[test]
-fn write() {
-    let mut f = std::fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open("exp.obj")
-        .unwrap();
-    let mut a1 = Area::new(5, [0., 0.], 2., 0., 0.);
-    a1.data.iter_mut().for_each(|(_, (_, a))| *a = 4.5);
-    a1.write_to_obj(&mut f).unwrap();
-}
+// #[test]
+// fn write() {
+//     let mut f = std::fs::OpenOptions::new()
+//         .write(true)
+//         .create(true)
+//         .truncate(true)
+//         .open("exp.obj")
+//         .unwrap();
+//     let mut a1 = Area::new(5, [0., 0.], 2., 0., 0.);
+//     a1.data.iter_mut().for_each(|(_, (_, a))| *a = 4.5);
+//     a1.write_to_obj(&mut f).unwrap();
+// }
 
 // phy
 #[allow(unused)]
@@ -147,8 +153,8 @@ impl Area {
         let block_max = [x + r, y + r];
         let idx_min = self.in_block(block_min);
         let idx_max = self.in_block(block_max);
-        for x in idx_min[0]..=idx_max[0] {
-            for y in idx_min[1]..=idx_max[1] {
+        for x in idx_min[X]..=idx_max[X] {
+            for y in idx_min[Y]..=idx_max[Y] {
                 let height = self.height([x, y]);
                 if height >= z {
                     return true;
@@ -164,20 +170,13 @@ impl Area {
         }
 
         let (plow, phigh) = {
-            if p1[2] > p2[2] {
+            if p1[Z] > p2[Z] {
                 (p2, p1)
             } else {
                 (p1, p2)
             }
         };
-        assert!(plow[2] <= phigh[2]);
-        let step = {
-            let s = f64::max((p1[0] - p2[0]).abs(), (p1[1] - p2[1]).abs());
-            // 如果两个点差别不到1block
-            if s < self.block_width {
-                return false;
-            }
-        };
+        assert!(plow[Z] <= phigh[Z]);
 
         disable!(p1, p2);
 
@@ -185,7 +184,87 @@ impl Area {
     }
 }
 
-pub fn next_step(first: f64, second: f64, now: f64, width: f64, base: f64) {
+pub fn next_step(first: f64, second: f64, now: f64, width: f64, base: f64) -> f64 {
+    assert_ne!(first, second);
     let now_pos = [first, second].lerp(now);
+    if first < second {
+        let offs = now_pos - base;
+        let remain = rempos(offs, width);
+        assert!(remain >= 0.);
+        assert!(remain <= width);
+        let a = second - first;
+        // dbg!(a);
+        assert!(a > 0.);
+        (width - remain) / a
+    } else {
+        let offs = now_pos - base;
+        let remain = -rempos(offs, width);
+        assert!(remain <= 0.);
+        let a = second - first;
+        assert!(a < 0.);
+        remain / a
+    }
     // let now =
+}
+
+#[test]
+fn r() {
+    let gen_rand = false;
+    let test_pos = true;
+    let test_neg = true;
+    if gen_rand {
+        dbg!(random::<f32>() * 200. - 100.);
+        dbg!(random::<f32>() * 200. - 100.);
+        dbg!(random::<f32>() * 200. - 100.);
+        dbg!(random::<f32>());
+        dbg!(random::<f32>() * 10.);
+    }
+
+    if test_pos {
+        let left = -55.83328;
+        let right = 43.80513;
+        let base = -80.85533;
+        let now_delta = 0.46742898;
+        let block = 1.766355;
+
+        let now_lerped = (left, right).lerp(now_delta);
+        dbg!(now_lerped);
+        dbg!(now_lerped - base);
+        let next_offs = dbg!(((now_lerped - base) / block).ceil());
+        let next = dbg!(base + block * next_offs);
+        dbg!(next - now_lerped);
+        let next_delta = (next - left) / (right - left);
+        dbg!(next, (left, right).lerp(next_delta));
+        dbg!(right - left);
+        dbg!(next_delta - now_delta);
+        assert!(
+            next_step(left, right, now_delta, block, base) - (next_delta - now_delta)
+                < 0.0000000001
+        );
+    }
+
+    if test_neg {
+        let left = 36.39627;
+        let right = -84.05739;
+        let base = -22.393417;
+        let now_delta = 0.73866737;
+        let block = 3.199309;
+
+        let now_lerped = (left, right).lerp(now_delta);
+        dbg!(now_lerped);
+        dbg!(now_lerped - base);
+        let next_offs = dbg!(((now_lerped - base) / block).floor());
+        let next = dbg!(base + block * next_offs);
+        assert!(next < now_lerped);
+        dbg!(next - now_lerped);
+        let next_delta = (next - left) / (right - left);
+        assert!(next_delta > now_delta);
+        dbg!(next, (left, right).lerp(next_delta));
+        dbg!(right - left);
+        dbg!(next_delta - now_delta);
+        assert!(
+            next_step(left, right, now_delta, block, base) - (next_delta - now_delta)
+                < 0.0000000001
+        );
+    }
 }

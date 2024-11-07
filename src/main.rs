@@ -11,6 +11,7 @@ pub mod cacl;
 pub mod support_type;
 pub mod utils;
 pub mod vec2d;
+
 #[derive(Parser, Debug)]
 struct Args {
     input: PathBuf,
