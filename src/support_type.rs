@@ -163,23 +163,31 @@ impl Area {
         false
     }
     pub fn collide_line(&self, p1: [f64; 3], p2: [f64; 3]) -> bool {
+        let fix_offs_rate = 0.001;
+
         // 如果起始点和目标点有碰撞就直接返回碰撞。
         if self.collide_point(p1) || self.collide_point(p2) {
             return true;
         }
 
-        let (plow, phigh) = {
-            if p1[Z] > p2[Z] {
-                (p2, p1)
-            } else {
-                (p1, p2)
+        let mut delta = 0.; // this is done
+        loop {
+            let delta_offs_x = next_step(p1[X], p2[X], delta, self.block_width, self.base[X]);
+            let delta_offs_y = next_step(p1[Y], p2[Y], delta, self.block_width, self.base[Y]);
+            let next_delta_offs = delta_offs_x.min(delta_offs_y);
+            let delta_offs_fix =
+                (delta_offs_x - delta_offs_y).abs().min(next_delta_offs) * fix_offs_rate;
+            assert!(delta_offs_fix > 0.);
+            assert!(next_delta_offs > 0.);
+
+            if self.collide_point((p1, p2).lerp(delta + next_delta_offs - delta_offs_fix))
+                || self.collide_point((p1, p2).lerp(delta + next_delta_offs + delta_offs_fix))
+            {
+                return true;
             }
-        };
-        assert!(plow[Z] <= phigh[Z]);
-
-        disable!(p1, p2);
-
-        todo!()
+            delta = delta + next_delta_offs + delta_offs_fix
+        }
+        false
     }
 }
 
