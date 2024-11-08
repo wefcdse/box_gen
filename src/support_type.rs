@@ -42,8 +42,12 @@ impl Area {
         assert!(dx >= 0.);
         assert!(dy >= 0.);
         [
-            (dx / self.block_width).floor() as usize,
-            (dy / self.block_width).floor() as usize,
+            ((dx / self.block_width).floor() as usize)
+                .max(0)
+                .min(self.data.x() - 1),
+            ((dy / self.block_width).floor() as usize)
+                .max(0)
+                .min(self.data.y() - 1),
         ]
     }
 

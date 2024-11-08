@@ -185,7 +185,7 @@ fn main() {
         let mut vec_no_cld = Vec::new();
         let mut counter_cld = 1;
         let mut counter_no_cld = 1;
-        for _ in 0..100000 {
+        for _ in 0..1000000 {
             let point1 = {
                 let delta_p: [f64; 3] = rand::random();
                 [

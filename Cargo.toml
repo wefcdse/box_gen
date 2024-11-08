@@ -10,3 +10,5 @@ clap = { version = "4.5.20", features = ["derive"] }
 rand = "0.8.5"
 [profile.dev]
 opt-level = 3
+[build-dependencies]
+cbindgen = "0.24.0"
