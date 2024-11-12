@@ -12,6 +12,18 @@ use crate::{
     vec2d::Vec2d,
 };
 
+mod utils {
+    use crate::utils::random_point_in;
+
+    use super::Area;
+
+    impl Area {
+        pub fn random_point(&self) -> [f64; 3] {
+            random_point_in(self.min(), self.max())
+        }
+    }
+}
+
 // 0####1@@@@
 // #####@@@@@
 // #####@@@@@
@@ -21,7 +33,7 @@ use crate::{
 // 2
 #[non_exhaustive]
 pub struct Area {
-    pub data: Vec2d<(SmallVec<[usize; 4]>, f64)>,
+    pub(crate) data: Vec2d<(SmallVec<[usize; 4]>, f64)>,
     // pub height: Vec2d<f64>,
     // a: SmallVec<[usize; 15]>,
     base: [f64; 2],
@@ -102,6 +114,9 @@ impl Area {
     }
     pub fn min(&self) -> [f64; 3] {
         [self.base[X], self.base[Y], self.zmin]
+    }
+    pub fn block_width(&self) -> f64 {
+        self.block_width
     }
 }
 impl Area {

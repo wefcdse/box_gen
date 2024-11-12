@@ -22,3 +22,8 @@ bench = false
 [build]
 target = "i686-pc-windows-gnu"
 rustflags = "-C panic=abort"
+
+[[bin]]
+name = "rrt"
+test = false
+bench = false

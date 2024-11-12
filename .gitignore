@@ -8,3 +8,5 @@ out.*
 bindings.h
 testing/build
 testing/.vscode
+*.mtl
+temp

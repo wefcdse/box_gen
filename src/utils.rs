@@ -80,3 +80,31 @@ pub mod index_xyz {
         assert!(*(&mut a[1]) == *(&mut a[Y]));
     }
 }
+
+pub fn random_point_in(min: [f64; 3], max: [f64; 3]) -> [f64; 3] {
+    use index_xyz::*;
+    let (xs, ys, zs) = (max[X] - min[X], max[Y] - min[Y], max[Z] - min[Z]);
+    assert!(xs >= 0.);
+    assert!(ys >= 0.);
+    assert!(zs >= 0.);
+    [
+        min[X] + rand::random::<f64>() * xs,
+        min[Y] + rand::random::<f64>() * ys,
+        min[Z] + rand::random::<f64>() * zs,
+    ]
+}
+
+pub fn write_line_to_obj<W: std::io::Write>(
+    file: &mut W,
+    line: &[[f64; 3]],
+) -> std::io::Result<()> {
+    use index_xyz::*;
+    for point in line {
+        writeln!(file, "v {} {} {}", point[X], point[Y], point[Z])?;
+    }
+    for i in 1..line.len() {
+        writeln!(file, "l {} {}", i, i + 1)?;
+    }
+
+    Ok(())
+}

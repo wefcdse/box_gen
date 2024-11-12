@@ -188,3 +188,29 @@ pub mod rempos {
         eqneg(-1231.41432, 11.184838);
     }
 }
+
+pub mod point {
+    use crate::utils::index_xyz::{X, Y, Z};
+
+    pub trait PointTrait {
+        fn length(&self) -> f64 {
+            self.length2().sqrt()
+        }
+        fn length2(&self) -> f64;
+        fn sub(&self, rhs: Self) -> Self;
+        fn add(&self, rhs: Self) -> Self;
+    }
+    impl PointTrait for [f64; 3] {
+        fn length2(&self) -> f64 {
+            self[X] * self[X] + self[Y] * self[Y] + self[Z] * self[Z]
+        }
+
+        fn sub(&self, rhs: Self) -> Self {
+            [(self[X] - rhs[X]), (self[Y] - rhs[Y]), (self[Z] - rhs[Z])]
+        }
+
+        fn add(&self, rhs: Self) -> Self {
+            [(self[X] + rhs[X]), (self[Y] + rhs[Y]), (self[Z] + rhs[Z])]
+        }
+    }
+}
