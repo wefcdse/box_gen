@@ -1,4 +1,7 @@
-use std::io::{self, Write};
+use std::{
+    fmt::Debug,
+    io::{self, Write},
+};
 
 use smallvec::SmallVec;
 
@@ -16,6 +19,7 @@ use crate::{
 // $$$$$
 // $$$$$
 // 2
+#[non_exhaustive]
 pub struct Area {
     pub data: Vec2d<(SmallVec<[usize; 4]>, f64)>,
     // pub height: Vec2d<f64>,
@@ -25,6 +29,16 @@ pub struct Area {
     #[allow(dead_code)]
     zmax: f64,
     block_width: f64,
+}
+impl Debug for Area {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Area")
+            .field("base", &self.base)
+            .field("zmin", &self.zmin)
+            .field("zmax", &self.zmax)
+            .field("block_width", &self.block_width)
+            .finish_non_exhaustive()
+    }
 }
 impl Area {
     pub fn new(l: usize, base: [f64; 2], block_width: f64, zmin: f64, zmax: f64) -> Self {
@@ -78,6 +92,16 @@ impl Area {
             )?;
         }
         Ok(())
+    }
+    pub fn max(&self) -> [f64; 3] {
+        [
+            self.base[X] + self.block_width * self.data.x() as f64,
+            self.base[Y] + self.block_width * self.data.y() as f64,
+            self.zmax,
+        ]
+    }
+    pub fn min(&self) -> [f64; 3] {
+        [self.base[X], self.base[Y], self.zmin]
     }
 }
 impl Area {

@@ -2,7 +2,8 @@
 name = "box_gen"
 version = "0.1.0"
 edition = "2021"
-
+[lib]
+crate-type = ["staticlib", "lib", "cdylib"]
 [dependencies]
 obj-rs = "0.7.4"
 smallvec = { version = "1.13.2", features = ["union"] }
@@ -12,3 +13,12 @@ rand = "0.8.5"
 opt-level = 3
 [build-dependencies]
 cbindgen = "0.24.0"
+
+[[bin]]
+name = "b1"
+test = false
+bench = false
+# path = "src/main.rs"
+[build]
+target = "i686-pc-windows-gnu"
+rustflags = "-C panic=abort"

@@ -6,3 +6,5 @@ out.*
 *.obj
 *.exe
 bindings.h
+testing/build
+testing/.vscode

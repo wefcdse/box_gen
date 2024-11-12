@@ -18,6 +18,9 @@
         }
     ],
     "files.associations": {
-        "cstdlib": "cpp"
+        "cstdlib": "cpp",
+        "cstdarg": "cpp",
+        "cstdint": "cpp",
+        "ostream": "cpp"
     }
 }
