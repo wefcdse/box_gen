@@ -213,4 +213,20 @@ pub mod point {
             [(self[X] + rhs[X]), (self[Y] + rhs[Y]), (self[Z] + rhs[Z])]
         }
     }
+    pub trait Point2Trait {
+        fn length(&self) -> f64 {
+            self.length2().sqrt()
+        }
+        fn length2(&self) -> f64;
+    }
+    impl Point2Trait for ([f64; 3], [f64; 3]) {
+        fn length2(&self) -> f64 {
+            self.0.sub(self.1).length2()
+        }
+    }
+    impl Point2Trait for [[f64; 3]; 2] {
+        fn length2(&self) -> f64 {
+            self[0].sub(self[1]).length2()
+        }
+    }
 }

@@ -1,7 +1,14 @@
 use core::f64;
 use std::{fs, io::BufWriter};
 
-use box_gen::{cacl::point::PointTrait, support_type::Area, utils::write_line_to_obj};
+use box_gen::{
+    cacl::{
+        lerp::Lerp,
+        point::{Point2Trait, PointTrait},
+    },
+    support_type::Area,
+    utils::write_line_to_obj,
+};
 
 fn main() {
     let area = Area::gen_from_obj_file("input.obj", 100, 10., 10., 0.1);
@@ -54,7 +61,6 @@ fn main() {
 
 fn rrt(area: &Area, start: [f64; 3], end: [f64; 3]) -> Vec<[f64; 3]> {
     let step_length = area.block_width();
-    let mut path = Vec::from([start]);
     let mut route = Vec::from([(0, start)]);
     loop {
         let nearest_idx = |p| {
@@ -71,14 +77,38 @@ fn rrt(area: &Area, start: [f64; 3], end: [f64; 3]) -> Vec<[f64; 3]> {
         };
 
         let p = area.random_point();
-        if area.collide_point(p) || area.collide_line(*path.last().unwrap(), p) {
+        if area.collide_point(p) {
             continue;
         }
-        path.push(p);
-        if !area.collide_line(p, end) {
+        let (np, ni) = {
+            let ni = nearest_idx(p);
+            (route[ni].1, ni)
+        };
+        let next_p = {
+            let l = np.sub(p).length();
+            let u = (step_length / l).min(1.);
+            assert!(u >= 0.);
+            (np, p).lerp(u)
+        };
+        if area.collide_point(next_p) || area.collide_line(np, next_p) {
+            continue;
+        }
+        route.push((ni, next_p));
+        if (next_p, end).length2() <= step_length * step_length && !area.collide_line(next_p, end) {
             break;
         }
     }
-    path.push(end);
+    let mut path = Vec::from([end]);
+    let mut now_idx = route.len() - 1;
+    loop {
+        let (parent, point) = route[now_idx];
+        path.push(point);
+        if parent == now_idx {
+            break;
+        }
+        now_idx = parent;
+    }
+    // path.push(start);
+    path.reverse();
     path
 }
