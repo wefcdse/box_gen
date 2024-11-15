@@ -60,14 +60,16 @@ fn main() {
 }
 
 fn rrt(area: &Area, start: [f64; 3], end: [f64; 3]) -> Vec<[f64; 3]> {
-    let step_length = area.block_width();
+    let step_length = area.block_width() * 4.;
     let mut route = Vec::from([(0, start)]);
     loop {
-        let nearest_idx = |p| {
+        let nearest_idx = |p: [f64; 3]| {
             let mut nearest_idx = 0;
             let mut l2 = f64::MAX;
             for (idx, (_, p1)) in route.iter().copied().enumerate() {
-                let l = p1.sub(p).length2();
+                let direction_fix = end.sub(p1).normal().dot(p.sub(p1).normal());
+                // dbg!(direction_fix);
+                let l = p1.sub(p).length2() * (1.03 - direction_fix);
                 if l < l2 {
                     l2 = l;
                     nearest_idx = idx;

@@ -199,6 +199,8 @@ pub mod point {
         fn length2(&self) -> f64;
         fn sub(&self, rhs: Self) -> Self;
         fn add(&self, rhs: Self) -> Self;
+        fn dot(&self, rhs: Self) -> f64;
+        fn normal(&self) -> Self;
     }
     impl PointTrait for [f64; 3] {
         fn length2(&self) -> f64 {
@@ -211,6 +213,18 @@ pub mod point {
 
         fn add(&self, rhs: Self) -> Self {
             [(self[X] + rhs[X]), (self[Y] + rhs[Y]), (self[Z] + rhs[Z])]
+        }
+
+        fn dot(&self, rhs: Self) -> f64 {
+            self[X] * rhs[X] + self[Y] * rhs[Y] + self[Z] * rhs[Z]
+        }
+
+        fn normal(&self) -> Self {
+            [
+                self[X] / self.length(),
+                self[Y] / self.length(),
+                self[Z] / self.length(),
+            ]
         }
     }
     pub trait Point2Trait {
@@ -228,5 +242,11 @@ pub mod point {
         fn length2(&self) -> f64 {
             self[0].sub(self[1]).length2()
         }
+    }
+    #[test]
+    fn t() {
+        assert_eq!([1., 1., 1.,].sub([0.3, 0.2, -0.6]), [0.7, 0.8, 1.6]);
+        dbg!([1., 1., 1.,].dot([0.3, 0.2, 0.6]),);
+        dbg!([213., 413., 13.].normal().length());
     }
 }
