@@ -65,6 +65,10 @@ impl Area {
     pub fn in_block(&self, pos: [f64; 2]) -> [usize; 2] {
         let dx = pos[X] - self.base[X];
         let dy = pos[Y] - self.base[Y];
+        if !(dx >= 0. && dy >= 0.) {
+            dbg!();
+            panic!("dx {}, dy {}, pos {:?}", dx, dy, pos);
+        }
         assert!(dx >= 0.);
         assert!(dy >= 0.);
         [
@@ -191,6 +195,9 @@ impl Area {
     pub fn collide_point(&self, pos: [f64; 3]) -> bool {
         let [x, y, z] = pos;
         disable!(pos);
+        if !self.in_area([x, y]) {
+            return true;
+        }
         let block = self.in_block([x, y]);
         let height = self.height(block);
         height >= z
@@ -218,6 +225,9 @@ impl Area {
         // 如果起始点和目标点有碰撞就直接返回碰撞。
         if self.collide_point(p1) || self.collide_point(p2) {
             return true;
+        }
+        if p1[X] == p2[X] && p1[Y] == p2[Y] {
+            return false;
         }
 
         let mut delta = 0.; // this is done
@@ -247,6 +257,9 @@ impl Area {
 }
 
 pub fn next_step(first: f64, second: f64, now: f64, width: f64, base: f64) -> f64 {
+    if first == second {
+        return 1.;
+    }
     assert_ne!(first, second);
     let now_pos = [first, second].lerp(now);
     if first < second {

@@ -200,6 +200,7 @@ pub mod point {
         fn sub(&self, rhs: Self) -> Self;
         fn add(&self, rhs: Self) -> Self;
         fn dot(&self, rhs: Self) -> f64;
+        fn scale(&self, rhs: f64) -> Self;
         fn normal(&self) -> Self;
     }
     impl PointTrait for [f64; 3] {
@@ -225,6 +226,10 @@ pub mod point {
                 self[Y] / self.length(),
                 self[Z] / self.length(),
             ]
+        }
+
+        fn scale(&self, rhs: f64) -> Self {
+            [self[X] * rhs, self[Y] * rhs, self[Z] * rhs]
         }
     }
     pub trait Point2Trait {
