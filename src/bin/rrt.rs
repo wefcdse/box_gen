@@ -35,8 +35,8 @@ fn main() {
     .unwrap();
     let path = {
         let (start, end) = loop {
-            let s = area.random_point();
-            let e = area.random_point();
+            let s = area.random_point().scale(0.8);
+            let e = area.random_point().scale(0.8);
             if !area.collide_point(s) && !area.collide_point(e) && area.collide_line(s, e) {
                 break (s, e);
             }
@@ -53,10 +53,10 @@ fn main() {
         //     }
         // }
 
-        let paths = (0..512)
+        let paths = (0..64)
             .into_par_iter()
             .map(|i| {
-                let p = rrt_move::<3, XYZ>(&(), &area, start, end, 10000);
+                let p = rrt_move::<3, DC吊车>(&(400., [0., 0., 0.]), &area, start, end, 20000);
                 dbg!(i);
                 p
             })
@@ -66,8 +66,8 @@ fn main() {
         // best_path
         paths
             .into_iter()
-            .min_by(|a, b| a.len().cmp(&b.len()))
-            .unwrap()
+            .min_by(|a, b| eval(a).cmp(&eval(b)))
+            .unwrap_or(Vec::from([(start, 0, 0.), (end, 0, 0.)]))
     };
     write_line_to_obj(
         &mut BufWriter::new(
@@ -78,7 +78,7 @@ fn main() {
                 .open("temp/rrt_path.obj")
                 .unwrap(),
         ),
-        &path,
+        path.iter().map(|(a, _, _)| *a),
     )
     .unwrap();
 }
@@ -145,7 +145,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
     start: [f64; 3],
     end: [f64; 3],
     max_count: usize,
-) -> Option<Vec<[f64; 3]>> {
+) -> Option<Vec<([f64; 3], usize, f64)>> {
     struct Node {
         pos: [f64; 3],
         root: usize,
@@ -159,7 +159,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
     let mut route = Vec::from([Node {
         pos: start,
         root: 0,
-        from_move_idx: 0,
+        from_move_idx: moveset.default_move(),
         from_move_step: 0.0,
     }]);
     let mut counter = 0;
@@ -197,7 +197,8 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
             .fold((f64::MIN, 0), |(max_abs, max_idx), (idx, normal)| {
                 let abs = normal.dot(direction).abs()
                     + if idx == from_move_idx {
-                        random::<f64>() * 1.0
+                        // random::<f64>() * 0.9
+                        0.9
                     } else {
                         0.0
                     };
@@ -233,15 +234,17 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         }
     }
     dbg!(counter);
-    let mut path = Vec::from([end]);
+    let mut path = Vec::from([(end, 0, 0.)]);
     let mut now_idx = route.len() - 1;
     loop {
         let Node {
             root: parent,
             pos: point,
+            from_move_idx,
+            from_move_step,
             ..
         } = route[now_idx];
-        path.push(point);
+        path.push((point, from_move_idx, from_move_step));
         if parent == now_idx {
             break;
         }
@@ -257,6 +260,7 @@ trait AsMove<const L: usize> {
     fn new(config: &Self::Config) -> Self;
     fn normals(&self, pos: [f64; 3]) -> [[f64; 3]; L];
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3];
+    fn default_move(&self) -> usize;
 }
 struct XYZ;
 impl AsMove<3> for XYZ {
@@ -283,6 +287,10 @@ impl AsMove<3> for XYZ {
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
         let p = self.normals(pos)[sel_idx].scale(step);
         pos.add(p)
+    }
+
+    fn default_move(&self) -> usize {
+        0
     }
 }
 #[test]
@@ -393,13 +401,31 @@ impl AsMove<3> for DC吊车 {
     }
 
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
+        let step_deg1 = 3.5 * step.signum();
+        let step_deg2 = 1.5 * step.signum();
         let (t1, t2, l) = self.position_to_pose(pos);
         let pose1 = match sel_idx {
-            0 => (t1 + step / 180. * std::f64::consts::PI, t2, l),
-            1 => (t1, t2 + step / 180. * std::f64::consts::PI, l),
+            0 => (t1 + step_deg1 / 180. * std::f64::consts::PI, t2, l),
+            1 => (t1, t2 + step_deg2 / 180. * std::f64::consts::PI, l),
             2 => (t1, t2, l + step),
             _ => unreachable!(),
         };
         self.pose_to_position(pose1)
     }
+
+    fn default_move(&self) -> usize {
+        2
+    }
+}
+
+fn eval(path: &[([f64; 3], usize, f64)]) -> usize {
+    let mut fix = 0;
+    let mut last_move = path[0].1;
+    for (_, m, _) in path.iter().copied() {
+        if last_move != m {
+            fix += 30;
+        }
+        last_move = m;
+    }
+    path.len() + fix
 }

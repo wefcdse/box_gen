@@ -96,13 +96,15 @@ pub fn random_point_in(min: [f64; 3], max: [f64; 3]) -> [f64; 3] {
 
 pub fn write_line_to_obj<W: std::io::Write>(
     file: &mut W,
-    line: &[[f64; 3]],
+    line: impl Iterator<Item = [f64; 3]>,
 ) -> std::io::Result<()> {
     use index_xyz::*;
+    let mut len = 0;
     for point in line {
         writeln!(file, "v {} {} {}", point[X], point[Y], point[Z])?;
+        len += 1;
     }
-    for i in 1..line.len() {
+    for i in 1..len {
         writeln!(file, "l {} {}", i, i + 1)?;
     }
 
