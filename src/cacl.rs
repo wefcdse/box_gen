@@ -190,6 +190,8 @@ pub mod rempos {
 }
 
 pub mod point {
+    use rand::random;
+
     use crate::utils::index_xyz::{X, Y, Z};
 
     pub trait PointTrait {
@@ -202,6 +204,8 @@ pub mod point {
         fn dot(&self, rhs: Self) -> f64;
         fn scale(&self, rhs: f64) -> Self;
         fn normal(&self) -> Self;
+        fn loose_eq(&self, rhs: Self) -> bool;
+        fn cross(&self, rhs: Self) -> Self;
     }
     impl PointTrait for [f64; 3] {
         fn length2(&self) -> f64 {
@@ -231,6 +235,21 @@ pub mod point {
         fn scale(&self, rhs: f64) -> Self {
             [self[X] * rhs, self[Y] * rhs, self[Z] * rhs]
         }
+
+        fn loose_eq(&self, rhs: Self) -> bool {
+            let b = 1e-10;
+            (self[X] - rhs[X]).abs() <= b
+                && (self[Y] - rhs[Y]).abs() <= b
+                && (self[Z] - rhs[Z]).abs() <= b
+        }
+
+        fn cross(&self, rhs: Self) -> Self {
+            [
+                self[1] * rhs[2] - self[2] * rhs[1],
+                self[2] * rhs[0] - self[0] * rhs[2],
+                self[0] * rhs[1] - self[1] * rhs[0],
+            ]
+        }
     }
     pub trait Point2Trait {
         fn length(&self) -> f64 {
@@ -253,5 +272,24 @@ pub mod point {
         assert_eq!([1., 1., 1.,].sub([0.3, 0.2, -0.6]), [0.7, 0.8, 1.6]);
         dbg!([1., 1., 1.,].dot([0.3, 0.2, 0.6]),);
         dbg!([213., 413., 13.].normal().length());
+
+        let test = [
+            (
+                [0.6952728948550719, 0.8856387014784037, 0.07952342062781792],
+                [0.7684203493004392, 0.5531224343830885, 0.36618075592317245],
+                [0.2803176611740497, -0.19348813955452, -0.2959717641812078],
+            ),
+            (
+                [0.6026368171302262, -0.491278785842444, 0.22342359116365107],
+                [0.18030142487852108, -0.4911784234672233, 0.847900458499978],
+                [-0.3068146604939731, -0.470692441715403, -0.207423936661347],
+            ),
+        ];
+        for (a, b, r) in test {
+            // dbg!(a.cross(b));
+            assert!(a.cross(b).loose_eq(r));
+        }
+        dbg!(random::<[f64; 3]>());
+        dbg!(random::<[f64; 3]>());
     }
 }

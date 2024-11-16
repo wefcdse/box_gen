@@ -6,9 +6,11 @@ use box_gen::{
         lerp::Lerp,
         point::{Point2Trait, PointTrait},
     },
+    disable,
     support_type::Area,
-    utils::write_line_to_obj,
+    utils::{index_xyz, write_line_to_obj},
 };
+use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 fn main() {
@@ -51,14 +53,16 @@ fn main() {
         //     }
         // }
 
-        let paths = (0..64)
+        let paths = (0..512)
             .into_par_iter()
             .map(|i| {
-                let p = rrt_move::<3, XYZ>(&(), &area, start, end);
+                let p = rrt_move::<3, XYZ>(&(), &area, start, end, 10000);
                 dbg!(i);
                 p
             })
+            .filter_map(|p| p)
             .collect::<Vec<_>>();
+        dbg!(paths.len());
         // best_path
         paths
             .into_iter()
@@ -140,17 +144,30 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
     area: &Area,
     start: [f64; 3],
     end: [f64; 3],
-) -> Vec<[f64; 3]> {
+    max_count: usize,
+) -> Option<Vec<[f64; 3]>> {
+    struct Node {
+        pos: [f64; 3],
+        root: usize,
+        from_move_idx: usize,
+        #[allow(unused)]
+        from_move_step: f64,
+    }
     let moveset = M::new(config);
 
-    let step_length = area.block_width() * 2.5;
-    let mut route = Vec::from([(0, start)]);
+    let step_length = area.block_width() * 2.0;
+    let mut route = Vec::from([Node {
+        pos: start,
+        root: 0,
+        from_move_idx: 0,
+        from_move_step: 0.0,
+    }]);
     let mut counter = 0;
     loop {
         let nearest_idx = |p: [f64; 3]| {
             let mut nearest_idx = 0;
             let mut l2 = f64::MAX;
-            for (idx, (_, p1)) in route.iter().copied().enumerate() {
+            for (idx, p1) in route.iter().map(|e| e.pos).enumerate() {
                 let direction_fix = end.sub(p1).normal().dot(p.sub(p1).normal());
                 // dbg!(direction_fix);
                 let l = p1.sub(p).length2() * (1.03 - direction_fix);
@@ -166,9 +183,9 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         // if area.collide_point(p) {
         //     continue;
         // }
-        let (base_point, base_idx) = {
+        let (base_point, base_idx, from_move_idx) = {
             let ni = nearest_idx(p);
-            (route[ni].1, ni)
+            (route[ni].pos, ni, route[ni].from_move_idx)
         };
 
         let direction = p.sub(base_point).normal();
@@ -178,7 +195,12 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
             .into_iter()
             .enumerate()
             .fold((f64::MIN, 0), |(max_abs, max_idx), (idx, normal)| {
-                let abs = normal.dot(direction).abs();
+                let abs = normal.dot(direction).abs()
+                    + if idx == from_move_idx {
+                        random::<f64>() * 1.0
+                    } else {
+                        0.0
+                    };
                 if abs > max_abs {
                     (abs, idx)
                 } else {
@@ -194,15 +216,31 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         if area.collide_point(next_p) || area.collide_line(base_point, next_p) {
             continue;
         }
-        route.push((base_idx, next_p));
+        // route.push((base_idx, next_p));
+        route.push(Node {
+            pos: next_p,
+            root: base_idx,
+            from_move_idx: nearest_idx,
+            from_move_step: step,
+        });
+        counter += 1;
+
         if (next_p, end).length2() <= step_length * step_length && !area.collide_line(next_p, end) {
             break;
         }
+        if counter > max_count {
+            return None;
+        }
     }
+    dbg!(counter);
     let mut path = Vec::from([end]);
     let mut now_idx = route.len() - 1;
     loop {
-        let (parent, point) = route[now_idx];
+        let Node {
+            root: parent,
+            pos: point,
+            ..
+        } = route[now_idx];
         path.push(point);
         if parent == now_idx {
             break;
@@ -211,7 +249,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
     }
     // path.push(start);
     path.reverse();
-    path
+    Some(path)
 }
 
 trait AsMove<const L: usize> {
@@ -230,20 +268,138 @@ impl AsMove<3> for XYZ {
 
     fn normals(&self, _: [f64; 3]) -> [[f64; 3]; 3] {
         // [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]]
+        // [
+        //     [1., 1., 0.].normal(),
+        //     [0., 1., 1.].normal(),
+        //     [1., 0., 2.].normal(),
+        // ]
         [
-            [1., 1., 0.].normal(),
-            [0., 1., 1.].normal(),
-            [1., 0., 2.].normal(),
+            [0.09275263006051904, 0.5062427205635203, 0.08394260037843648].normal(),
+            [0.505252002327924, 0.0036806377496515497, 0.6857313789597959].normal(),
+            [0.7530463184535672, 0.3125142326453717, 0.05447322306410152].normal(),
         ]
     }
 
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
-        let p = [
-            [1., 1., 0.].normal(),
-            [0., 1., 1.].normal(),
-            [1., 0., 2.].normal(),
-        ][sel_idx]
-            .scale(step);
+        let p = self.normals(pos)[sel_idx].scale(step);
         pos.add(p)
+    }
+}
+#[test]
+fn d() {
+    println!("{:?}.normal(),", random::<[f64; 3]>());
+    println!("{:?}.normal(),", random::<[f64; 3]>());
+    println!("{:?}.normal(),", random::<[f64; 3]>());
+}
+
+struct DC吊车 {
+    bc臂长: f64,
+    base: [f64; 3],
+}
+
+impl DC吊车 {
+    fn position_to_pose(&self, pos: [f64; 3]) -> (f64, f64, f64) {
+        // y
+        //
+        // 0    x
+        let [x, y, z] = pos.sub(self.base);
+        disable!(pos);
+        let theta1 = {
+            // // let t =
+            // let xp = x > 0.;
+            // let yp = y > 0.;
+            y.atan2(x)
+        };
+
+        let theta2 = ((x * x + y * y).sqrt() / self.bc臂长).acos();
+
+        let l = (self.bc臂长 * self.bc臂长 - (x * x + y * y)).sqrt() - z;
+        (theta1, theta2, l)
+    }
+    fn pose_to_position(&self, (theta1, theta2, l): (f64, f64, f64)) -> [f64; 3] {
+        let z = self.bc臂长 * theta2.sin() - l;
+        let xy = self.bc臂长 * theta2.cos();
+        let x = xy * theta1.cos();
+        let y = xy * theta1.sin();
+        [x, y, z].add(self.base)
+    }
+}
+#[test]
+fn a() {
+    use index_xyz::*;
+    let d = DC吊车 {
+        bc臂长: 41.,
+        base: [3., 1., 6.],
+    };
+    let p = [-16., -14., -12.];
+    assert!([p[X] - d.base[X], p[Y] - d.base[Y], 0.].length() < d.bc臂长);
+    let mut a = dbg!(d.position_to_pose(p));
+    let b = dbg!(d.pose_to_position(a));
+    assert!(p.loose_eq(b));
+
+    let mut point_vec = Vec::new();
+    point_vec.push(d.base);
+    point_vec.push(d.base.add([0., 0., d.bc臂长]));
+    point_vec.push(p);
+    for i in 0..100 {
+        a.0 += std::f64::consts::PI / 180. * 3.;
+        point_vec.push(d.pose_to_position(a));
+    }
+    for i in 0..80 {
+        a.1 += std::f64::consts::PI / 180. * 3.;
+        point_vec.push(d.pose_to_position(a));
+    }
+    for i in 0..100 {
+        a.0 += std::f64::consts::PI / 180. * 1.;
+        point_vec.push(d.pose_to_position(a));
+    }
+    for i in 0..30 {
+        a.2 += 1.;
+        point_vec.push(d.pose_to_position(a));
+    }
+
+    for i in 0..100 {
+        a.1 += std::f64::consts::PI / 180. * 3.;
+        point_vec.push(d.pose_to_position(a));
+    }
+    write_line_to_obj(
+        &mut BufWriter::new(
+            fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open("temp/cyc.obj")
+                .unwrap(),
+        ),
+        &point_vec,
+    )
+    .unwrap();
+}
+impl AsMove<3> for DC吊车 {
+    type Config = (f64, [f64; 3]);
+
+    fn new(config: &Self::Config) -> Self {
+        Self {
+            bc臂长: config.0,
+            base: config.1,
+        }
+    }
+
+    fn normals(&self, pos: [f64; 3]) -> [[f64; 3]; 3] {
+        let [x, y, z] = pos.sub(self.base);
+        let t1pos_normal = [0., 0., 1.].cross([x, y, 0.]).normal();
+        let t2pos_normal = [x, y, z].cross(t1pos_normal).normal();
+        [t1pos_normal, t2pos_normal, [0., 0., -1.]]
+    }
+
+    fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
+        let (t1, t2, l) = self.position_to_pose(pos);
+        let pose1 = match sel_idx {
+            0 => (t1 + step / 180. * std::f64::consts::PI, t2, l),
+            1 => (t1, t2 + step / 180. * std::f64::consts::PI, l),
+            2 => (t1, t2, l + step),
+            _ => unreachable!(),
+        };
+        self.pose_to_position(pose1)
     }
 }
