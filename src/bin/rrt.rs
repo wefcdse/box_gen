@@ -8,13 +8,16 @@ use box_gen::{
     },
     disable,
     support_type::Area,
-    utils::{index_xyz, write_line_to_obj},
+    utils::{
+        index_xyz::{self, Z},
+        write_line_to_obj,
+    },
 };
 use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 fn main() {
-    let area = Area::gen_from_obj_file("input.obj", 100, 10., 10., 0.1);
+    let area = Area::gen_from_obj_file("Block.obj", 150, 20., 20., 0.1);
     area.write_to_obj(&mut BufWriter::new(
         fs::OpenOptions::new()
             .create(true)
@@ -37,6 +40,9 @@ fn main() {
         let (start, end) = loop {
             let s = area.random_point().scale(0.8);
             let e = area.random_point().scale(0.8);
+            if s[Z].max(e[Z]) > area.max()[Z] - 30. {
+                continue;
+            }
             if !area.collide_point(s) && !area.collide_point(e) && area.collide_line(s, e) {
                 break (s, e);
             }
@@ -53,10 +59,10 @@ fn main() {
         //     }
         // }
 
-        let paths = (0..64)
+        let paths = (0..256)
             .into_par_iter()
             .map(|i| {
-                let p = rrt_move::<3, DC吊车>(&(400., [0., 0., 0.]), &area, start, end, 20000);
+                let p = rrt_move::<3, DC吊车>(&(300., [0., 0., 0.]), &area, start, end, 1_0000);
                 dbg!(i);
                 p
             })
@@ -155,7 +161,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
     }
     let moveset = M::new(config);
 
-    let step_length = area.block_width() * 2.0;
+    let step_length = area.block_width() * 3.0;
     let mut route = Vec::from([Node {
         pos: start,
         root: 0,
@@ -198,6 +204,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
                 let abs = normal.dot(direction).abs()
                     + if idx == from_move_idx {
                         // random::<f64>() * 0.9
+                        // 1. * random::<f64>()
                         0.9
                     } else {
                         0.0
@@ -225,8 +232,11 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
             from_move_step: step,
         });
         counter += 1;
-
-        if (next_p, end).length2() <= step_length * step_length && !area.collide_line(next_p, end) {
+        use index_xyz::*;
+        if ([next_p[X], next_p[Y], 0.], [end[X], end[Y], 0.]).length2()
+            <= step_length * step_length * 4.
+            && !area.collide_line(next_p, end)
+        {
             break;
         }
         if counter > max_count {
@@ -401,12 +411,14 @@ impl AsMove<3> for DC吊车 {
     }
 
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
-        let step_deg1 = 3.5 * step.signum();
-        let step_deg2 = 1.5 * step.signum();
+        const PI: f64 = std::f64::consts::PI;
+        let [x, y, _] = pos.sub(self.base);
+        let step_rad1 = step / (x * x + y * y).sqrt();
+        let step_rad2 = step / self.bc臂长;
         let (t1, t2, l) = self.position_to_pose(pos);
         let pose1 = match sel_idx {
-            0 => (t1 + step_deg1 / 180. * std::f64::consts::PI, t2, l),
-            1 => (t1, t2 + step_deg2 / 180. * std::f64::consts::PI, l),
+            0 => (t1 + step_rad1, t2, l),
+            1 => (t1, t2 + step_rad2, l),
             2 => (t1, t2, l + step),
             _ => unreachable!(),
         };
@@ -423,7 +435,7 @@ fn eval(path: &[([f64; 3], usize, f64)]) -> usize {
     let mut last_move = path[0].1;
     for (_, m, _) in path.iter().copied() {
         if last_move != m {
-            fix += 30;
+            fix += 10;
         }
         last_move = m;
     }
