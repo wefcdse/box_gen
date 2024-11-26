@@ -313,7 +313,7 @@ trait AsMove<const L: usize> {
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3];
     fn default_move(&self) -> usize;
 }
-#[allow(unused)]
+#[allow(unused, clippy::upper_case_acronyms)]
 struct XYZ;
 impl AsMove<3> for XYZ {
     type Config = ();

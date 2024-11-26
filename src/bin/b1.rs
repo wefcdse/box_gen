@@ -97,8 +97,8 @@ fn main() {
                     (area.min()[X], area.max()[X]).lerp(delta_p[X]),
                     (area.min()[Y], area.max()[Y]).lerp(delta_p[Y]),
                     (
-                        area.min()[Z] - args.offs_low as f64,
-                        area.max()[Z] + args.offs_high as f64,
+                        area.min()[Z] - args.offs_low,
+                        area.max()[Z] + args.offs_high,
                     )
                         .lerp(delta_p[Z]),
                 ]
@@ -145,8 +145,8 @@ fn main() {
                     (area.min()[X], area.max()[X]).lerp(delta_p[X]),
                     (area.min()[Y], area.max()[Y]).lerp(delta_p[Y]),
                     (
-                        area.min()[Z] - args.offs_low as f64,
-                        area.max()[Z] + args.offs_high as f64,
+                        area.min()[Z] - args.offs_low,
+                        area.max()[Z] + args.offs_high,
                     )
                         .lerp(delta_p[Z]),
                 ]
@@ -157,8 +157,8 @@ fn main() {
                     (area.min()[X], area.max()[X]).lerp(delta_p[X]),
                     (area.min()[Y], area.max()[Y]).lerp(delta_p[Y]),
                     (
-                        area.min()[Z] - args.offs_low as f64,
-                        area.max()[Z] + args.offs_high as f64,
+                        area.min()[Z] - args.offs_low,
+                        area.max()[Z] + args.offs_high,
                     )
                         .lerp(delta_p[Z]),
                 ]

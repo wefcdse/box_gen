@@ -64,6 +64,7 @@ pub mod index_xyz {
     implthis!(Y, 1);
     implthis!(Z, 2);
     #[test]
+    #[allow(clippy::deref_addrof)]
     fn t() {
         let mut a = [318, 15, 5];
         assert_eq!(a[0], a[X]);
