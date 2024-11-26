@@ -15,7 +15,7 @@ use box_gen::{
 };
 use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-
+use std::io::Write;
 fn main() {
     let area = Area::gen_from_obj_file("Block.obj", 150, 20., 20., 0.1);
     area.write_to_obj(&mut BufWriter::new(
@@ -87,6 +87,47 @@ fn main() {
         path.iter().map(|(a, _, _)| *a),
     )
     .unwrap();
+    {
+        let moveset = DC吊车::new(&(300., [0., 0., 0.]));
+        let mut v = Vec::new();
+        let mut last_pos = path[0].0;
+        v.push(last_pos);
+        let mut last_m = path[0].1;
+        for (i, (pos, m, _)) in path.iter().copied().enumerate() {
+            if m != last_m || i == path.len() - 1 {
+                v.push(last_pos);
+            }
+            last_pos = pos;
+            last_m = m;
+        }
+
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move.obj")
+            .unwrap();
+
+        for p in v {
+            let (t1, t2, l) = moveset.position_to_pose(p);
+            writeln!(of, "{} {} {}", t1, t2, l).unwrap();
+        }
+    }
+
+    {
+        let moveset = DC吊车::new(&(300., [0., 0., 0.]));
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move_all.obj")
+            .unwrap();
+
+        for (p, _, _) in path.iter() {
+            let (t1, t2, l) = moveset.position_to_pose(*p);
+            writeln!(of, "{} {} {}", t1, t2, l).unwrap();
+        }
+    }
 }
 
 fn rrt(area: &Area, start: [f64; 3], end: [f64; 3]) -> Vec<[f64; 3]> {

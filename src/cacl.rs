@@ -190,7 +190,6 @@ pub mod rempos {
 }
 
 pub mod point {
-    use rand::random;
 
     use crate::utils::index_xyz::{X, Y, Z};
 
@@ -269,6 +268,7 @@ pub mod point {
     }
     #[test]
     fn t() {
+        use rand::random;
         assert_eq!([1., 1., 1.,].sub([0.3, 0.2, -0.6]), [0.7, 0.8, 1.6]);
         dbg!([1., 1., 1.,].dot([0.3, 0.2, 0.6]),);
         dbg!([213., 413., 13.].normal().length());
