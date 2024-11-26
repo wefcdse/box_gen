@@ -1,5 +1,5 @@
 use core::f64;
-use std::{fs, io::BufWriter};
+use std::{fs, io::BufWriter, ops::Sub};
 
 use box_gen::{
     cacl::{
@@ -13,10 +13,10 @@ use box_gen::{
         write_line_to_obj,
     },
 };
-use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::io::Write;
 fn main() {
+    let config = &(300., 20., [0., 0., 0.]);
     let area = Area::gen_from_obj_file("Block.obj", 150, 20., 20., 0.1);
     area.write_to_obj(&mut BufWriter::new(
         fs::OpenOptions::new()
@@ -62,7 +62,7 @@ fn main() {
         let paths = (0..256)
             .into_par_iter()
             .map(|i| {
-                let p = rrt_move::<3, DC吊车>(&(300., [0., 0., 0.]), &area, start, end, 1_0000);
+                let p = rrt_move::<3, DC吊车>(config, &area, start, end, 1_0000);
                 dbg!(i);
                 p
             })
@@ -88,7 +88,7 @@ fn main() {
     )
     .unwrap();
     {
-        let moveset = DC吊车::new(&(300., [0., 0., 0.]));
+        let moveset = DC吊车::new(config);
         let mut v = Vec::new();
         let mut last_pos = path[0].0;
         v.push(last_pos);
@@ -115,7 +115,7 @@ fn main() {
     }
 
     {
-        let moveset = DC吊车::new(&(300., [0., 0., 0.]));
+        let moveset = DC吊车::new(config);
         let mut of = fs::OpenOptions::new()
             .create(true)
             .write(true)
@@ -129,7 +129,7 @@ fn main() {
         }
     }
 }
-
+#[allow(dead_code)]
 fn rrt(area: &Area, start: [f64; 3], end: [f64; 3]) -> Vec<[f64; 3]> {
     let step_length = area.block_width() * 4.;
     let mut route = Vec::from([(0, start)]);
@@ -313,6 +313,7 @@ trait AsMove<const L: usize> {
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3];
     fn default_move(&self) -> usize;
 }
+#[allow(unused)]
 struct XYZ;
 impl AsMove<3> for XYZ {
     type Config = ();
@@ -346,6 +347,8 @@ impl AsMove<3> for XYZ {
 }
 #[test]
 fn d() {
+    use rand::random;
+
     println!("{:?}.normal(),", random::<[f64; 3]>());
     println!("{:?}.normal(),", random::<[f64; 3]>());
     println!("{:?}.normal(),", random::<[f64; 3]>());
@@ -353,6 +356,7 @@ fn d() {
 
 struct DC吊车 {
     bc臂长: f64,
+    yaw_offs: f64,
     base: [f64; 3],
 }
 
@@ -370,14 +374,16 @@ impl DC吊车 {
             y.atan2(x)
         };
 
-        let theta2 = ((x * x + y * y).sqrt() / self.bc臂长).acos();
+        let xy = (x * x + y * y).sqrt().sub(self.yaw_offs);
 
-        let l = (self.bc臂长 * self.bc臂长 - (x * x + y * y)).sqrt() - z;
+        let theta2 = (xy / self.bc臂长).acos();
+
+        let l = (self.bc臂长 * self.bc臂长 - xy * xy).sqrt() - z;
         (theta1, theta2, l)
     }
     fn pose_to_position(&self, (theta1, theta2, l): (f64, f64, f64)) -> [f64; 3] {
         let z = self.bc臂长 * theta2.sin() - l;
-        let xy = self.bc臂长 * theta2.cos();
+        let xy = self.bc臂长 * theta2.cos() + self.yaw_offs;
         let x = xy * theta1.cos();
         let y = xy * theta1.sin();
         [x, y, z].add(self.base)
@@ -387,11 +393,12 @@ impl DC吊车 {
 fn a() {
     use index_xyz::*;
     let d = DC吊车 {
-        bc臂长: 41.,
-        base: [3., 1., 6.],
+        bc臂长: 40.,
+        yaw_offs: 60.,
+        base: [0., 0., 100.],
     };
-    let p = [-16., -14., -12.];
-    assert!([p[X] - d.base[X], p[Y] - d.base[Y], 0.].length() < d.bc臂长);
+    let p = [70., 70., -12.];
+    assert!([p[X] - d.base[X], p[Y] - d.base[Y], 0.].length() < (d.bc臂长 + d.yaw_offs));
     let mut a = dbg!(d.position_to_pose(p));
     let b = dbg!(d.pose_to_position(a));
     assert!(p.loose_eq(b));
@@ -400,24 +407,24 @@ fn a() {
     point_vec.push(d.base);
     point_vec.push(d.base.add([0., 0., d.bc臂长]));
     point_vec.push(p);
-    for i in 0..100 {
+    for _ in 0..100 {
         a.0 += std::f64::consts::PI / 180. * 3.;
         point_vec.push(d.pose_to_position(a));
     }
-    for i in 0..80 {
+    for _ in 0..80 {
         a.1 += std::f64::consts::PI / 180. * 3.;
         point_vec.push(d.pose_to_position(a));
     }
-    for i in 0..100 {
+    for _ in 0..100 {
         a.0 += std::f64::consts::PI / 180. * 1.;
         point_vec.push(d.pose_to_position(a));
     }
-    for i in 0..30 {
+    for _ in 0..30 {
         a.2 += 1.;
         point_vec.push(d.pose_to_position(a));
     }
 
-    for i in 0..100 {
+    for _ in 0..100 {
         a.1 += std::f64::consts::PI / 180. * 3.;
         point_vec.push(d.pose_to_position(a));
     }
@@ -430,17 +437,18 @@ fn a() {
                 .open("temp/cyc.obj")
                 .unwrap(),
         ),
-        &point_vec,
+        point_vec.iter().copied(),
     )
     .unwrap();
 }
 impl AsMove<3> for DC吊车 {
-    type Config = (f64, [f64; 3]);
+    type Config = (f64, f64, [f64; 3]);
 
     fn new(config: &Self::Config) -> Self {
         Self {
             bc臂长: config.0,
-            base: config.1,
+            yaw_offs: config.1,
+            base: config.2,
         }
     }
 
@@ -452,7 +460,7 @@ impl AsMove<3> for DC吊车 {
     }
 
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
-        const PI: f64 = std::f64::consts::PI;
+        // const PI: f64 = std::f64::consts::PI;
         let [x, y, _] = pos.sub(self.base);
         let step_rad1 = step / (x * x + y * y).sqrt();
         let step_rad2 = step / self.bc臂长;

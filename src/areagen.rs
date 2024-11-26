@@ -44,7 +44,7 @@ impl Area {
             });
         time!(mm, "max min");
         // dbg!(max, min);
-        let split = split;
+        // let split = split;
 
         let block_size = ((max.position[X] - min.position[X]).abs())
             .max((max.position[Y] - min.position[Y]).abs()) as f64

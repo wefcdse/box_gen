@@ -8,15 +8,17 @@ pub mod support_type;
 pub mod utils;
 pub mod vec2d;
 
+/// # Safety
+/// file_name must be a valid c str
 #[no_mangle]
-pub extern "C" fn generate_from_obj(
+pub unsafe extern "C" fn generate_from_obj(
     file_name: *const ffi::c_char,
     split: usize,
     offs_high: f64,
     offs_low: f64,
     offs: f64,
 ) -> Box<Area> {
-    let file_name = unsafe { ffi::CStr::from_ptr(file_name) }.to_str().unwrap();
+    let file_name = ffi::CStr::from_ptr(file_name).to_str().unwrap();
     let area = Area::gen_from_obj_file(file_name, split, offs_high, offs_low, offs);
     Box::new(area)
 }
