@@ -9,7 +9,7 @@ use std::{
 /// to avoid too many times of heap allowcation.
 ///
 /// ```
-/// use computercraft_websocket_control::utils::Vec2d;
+/// use box_gen::vec2d::Vec2d;
 /// let mut v = Vec2d::new_filled_copy(2, 3, 0);
 /// v[(0, 1)] = 2;
 /// assert_eq!(v[0][1], 2);

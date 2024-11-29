@@ -17,7 +17,9 @@ macro_rules! disable {
             Disabled
         };
         {
-            $a;
+            fn d<T>(_v:T){}
+            d($a);
+            // $a;
         }
         )*
     };
