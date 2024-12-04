@@ -1,6 +1,6 @@
-use std::ops::Sub;
+use std::{f64::consts::PI, ops::Sub};
 
-use crate::{cacl::point::PointTrait, disable};
+use crate::{cacl::point::PointTrait, disable, support_type::Area};
 
 pub trait AsMove<const L: usize> {
     type Config;
@@ -8,6 +8,7 @@ pub trait AsMove<const L: usize> {
     fn normals(&self, pos: [f64; 3]) -> [[f64; 3]; L];
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3];
     fn default_move(&self) -> usize;
+    fn valid(&self, area: &Area, pos: [f64; 3]) -> bool;
 }
 #[allow(unused, clippy::upper_case_acronyms)]
 struct XYZ;
@@ -39,6 +40,10 @@ impl AsMove<3> for XYZ {
 
     fn default_move(&self) -> usize {
         0
+    }
+
+    fn valid(&self, _: &Area, _: [f64; 3]) -> bool {
+        true
     }
 }
 #[test]
@@ -153,7 +158,7 @@ impl AsMove<3> for Crane {
     fn normals(&self, pos: [f64; 3]) -> [[f64; 3]; 3] {
         let [x, y, z] = pos.sub(self.base);
         let t1pos_normal = [0., 0., 1.].cross([x, y, 0.]).normal();
-        let t2pos_normal = [x, y, z].cross(t1pos_normal).normal();
+        let t2pos_normal = t1pos_normal.cross([x, y, z]).normal();
         [t1pos_normal, t2pos_normal, [0., 0., -1.]]
     }
 
@@ -174,5 +179,12 @@ impl AsMove<3> for Crane {
 
     fn default_move(&self) -> usize {
         2
+    }
+
+    fn valid(&self, area: &Area, pos: [f64; 3]) -> bool {
+        let (t1, t2, l) = self.position_to_pose(pos);
+        let start_p = self.pose_to_position((t1, PI / 2., self.l));
+        let end_p = self.pose_to_position((t1, t2, 0.));
+        l > 4. && (t2 > 0. && t2 < (PI / 180. * 75.)) & !area.collide_line(start_p, end_p)
     }
 }

@@ -10,3 +10,4 @@ testing/build
 testing/.vscode
 *.mtl
 temp
+!模拟场景1.blend

@@ -6,7 +6,7 @@ use std::{
 use smallvec::SmallVec;
 
 use crate::{
-    cacl::{lerp::Lerp, rempos::rempos},
+    cacl::{lerp::Lerp, point::PointTrait, rempos::rempos},
     disable,
     utils::index_xyz::*,
     vec2d::Vec2d,
@@ -237,8 +237,13 @@ impl Area {
             let next_delta_offs = delta_offs_x.min(delta_offs_y);
             let delta_offs_fix =
                 (delta_offs_x - delta_offs_y).abs().min(next_delta_offs) * fix_offs_rate;
-            assert!(delta_offs_fix > 0.);
-            assert!(next_delta_offs > 0.);
+            let delta_offs_fix = self.block_width() / p1.sub(p2).length() * fix_offs_rate;
+            assert!(delta_offs_fix > 0., "delta_offs_fix = {}", delta_offs_fix);
+            assert!(
+                next_delta_offs > 0.,
+                "next_delta_offs = {}",
+                next_delta_offs
+            );
             let delta_low = delta + next_delta_offs - delta_offs_fix;
             let delta_high = delta + next_delta_offs + delta_offs_fix;
             if delta_low < 1. && self.collide_point((p1, p2).lerp(delta_low)) {

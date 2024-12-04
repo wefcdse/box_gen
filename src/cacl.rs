@@ -40,9 +40,13 @@ pub fn gen_area(
         let max_idx = area.in_block(max_xy);
         assert!(min_idx[0] <= max_idx[0]);
         assert!(min_idx[1] <= max_idx[1]);
-
-        for x in min_idx[0]..=max_idx[0] {
-            for y in min_idx[1]..=max_idx[1] {
+        let wider = 2;
+        for x in
+            (min_idx[0].max(wider) - wider)..=(max_idx[0].min(area.data.x() - 1 - wider) + wider)
+        {
+            for y in (min_idx[1].max(wider) - wider)
+                ..=(max_idx[1].min(area.data.y() - 1 - wider) + wider)
+            {
                 area.data[[x, y]].0.push(idx);
             }
         }

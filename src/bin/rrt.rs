@@ -8,14 +8,261 @@ use box_gen::{
     },
     path_planning::{AsMove, Crane},
     support_type::Area,
+    time,
     utils::{
         index_xyz::{self, Z},
         write_line_to_obj,
     },
 };
+use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::io::Write;
 fn main() {
+    time!(main);
+    run_scan_scene20241204();
+    // run_scan_scene();
+    time!(main, "main")
+}
+fn run_scan_scene20241204() {
+    // let config = &(18.981, -1., [-15.6384, -10.2941, -11.8289]);
+    let config = &(18.981, -1., [0., 0., 0.]);
+    let config = &(18.981, -1., [-10.294100, 15.638400, -11.828900]);
+
+    let area = Area::gen_from_obj_file(
+        r#"C:\Users\yaoyj\Desktop\2024-12-04\env.obj"#,
+        300,
+        20.,
+        20.,
+        0.02,
+    );
+    area.write_to_obj(&mut BufWriter::new(
+        fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_area.obj")
+            .unwrap(),
+    ))
+    .unwrap();
+    area.write_info(
+        &mut fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/info.txt")
+            .unwrap(),
+    )
+    .unwrap();
+    let path = {
+        let (start, end) = (
+            [-1.92, -12.610593, -13.373562],
+            [-2.8623, -4.74634, -13.373562],
+        );
+        let (start, end) = (
+            [-13.136984, -0.590593, -13.476562],
+            [-3.265594, 0.447873, -13.476562],
+        );
+        // let (start, end) = (
+        //     [-6.454714, -2.040601, 0.597431],
+        //     [-2.407892, -6.342020, 0.597431],
+        // );
+        dbg!(start, end);
+
+        // let path = rrt_move::<3, XYZ>(&(), &area, start, end);
+        // let mut best_path = path;
+        // for _ in 0..10 {
+        //     dbg!();
+        //     let path = rrt_move::<3, XYZ>(&(), &area, start, end);
+        //     if path.len() < best_path.len() {
+        //         best_path = path;
+        //     }
+        // }
+
+        let paths = (0..4096)
+            .into_par_iter()
+            .map(|i| {
+                let p = rrt_move::<3, Crane>(config, &area, start, end, 2500);
+                dbg!(i);
+                p
+            })
+            .filter_map(|p| p)
+            .collect::<Vec<_>>();
+        dbg!(paths.len());
+        // best_path
+        paths
+            .into_iter()
+            .min_by(|a, b| eval(a).cmp(&eval(b)))
+            .unwrap_or(Vec::from([(start, 0, 0.), (end, 0, 0.)]))
+    };
+    write_line_to_obj(
+        &mut BufWriter::new(
+            fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open("temp/rrt_path.obj")
+                .unwrap(),
+        ),
+        path.iter().map(|(a, _, _)| *a),
+    )
+    .unwrap();
+    {
+        let moveset = Crane::new(config);
+        let mut v = Vec::new();
+        let mut last_pos = path[0].0;
+        v.push(last_pos);
+        let mut last_m = path[0].1;
+        for (i, (pos, m, _)) in path.iter().copied().enumerate() {
+            if m != last_m || i == path.len() - 1 {
+                v.push(last_pos);
+            }
+            last_pos = pos;
+            last_m = m;
+        }
+
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move.obj")
+            .unwrap();
+
+        for p in v {
+            let (t1, t2, l) = moveset.position_to_pose(p);
+            writeln!(of, "{} {} {}", t1, t2, l).unwrap();
+        }
+    }
+
+    {
+        let moveset = Crane::new(config);
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move_all.obj")
+            .unwrap();
+
+        for (p, _, _) in path.iter() {
+            let (t1, t2, l) = moveset.position_to_pose(*p);
+            writeln!(of, "{} {} {}", t1, t2, l).unwrap();
+        }
+    }
+}
+
+fn run_sim_scene() {
+    let config = &(10., 0.5, [0., 0., 2.]);
+    let area = Area::gen_from_obj_file("s2.obj", 300, 20., 20., 0.02);
+    area.write_to_obj(&mut BufWriter::new(
+        fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_area.obj")
+            .unwrap(),
+    ))
+    .unwrap();
+    area.write_info(
+        &mut fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/info.txt")
+            .unwrap(),
+    )
+    .unwrap();
+    let path = {
+        let (start, end) = (
+            [-6.454811, -4.306059, 0.597431],
+            [-0.449157, -4.599950, 0.597431],
+        );
+        let (start, end) = (
+            [-6.454714, -2.040601, 0.597431],
+            [-2.407892, -6.342020, 0.597431],
+        );
+        dbg!(start, end);
+
+        // let path = rrt_move::<3, XYZ>(&(), &area, start, end);
+        // let mut best_path = path;
+        // for _ in 0..10 {
+        //     dbg!();
+        //     let path = rrt_move::<3, XYZ>(&(), &area, start, end);
+        //     if path.len() < best_path.len() {
+        //         best_path = path;
+        //     }
+        // }
+
+        let paths = (0..2048)
+            .into_par_iter()
+            .map(|i| {
+                let p = rrt_move::<3, Crane>(config, &area, start, end, 2_0000);
+                dbg!(i);
+                p
+            })
+            .filter_map(|p| p)
+            .collect::<Vec<_>>();
+        dbg!(paths.len());
+        // best_path
+        paths
+            .into_iter()
+            .min_by(|a, b| eval(a).cmp(&eval(b)))
+            .unwrap_or(Vec::from([(start, 0, 0.), (end, 0, 0.)]))
+    };
+    write_line_to_obj(
+        &mut BufWriter::new(
+            fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open("temp/rrt_path.obj")
+                .unwrap(),
+        ),
+        path.iter().map(|(a, _, _)| *a),
+    )
+    .unwrap();
+    {
+        let moveset = Crane::new(config);
+        let mut v = Vec::new();
+        let mut last_pos = path[0].0;
+        v.push(last_pos);
+        let mut last_m = path[0].1;
+        for (i, (pos, m, _)) in path.iter().copied().enumerate() {
+            if m != last_m || i == path.len() - 1 {
+                v.push(last_pos);
+            }
+            last_pos = pos;
+            last_m = m;
+        }
+
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move.obj")
+            .unwrap();
+
+        for p in v {
+            let (t1, t2, l) = moveset.position_to_pose(p);
+            writeln!(of, "{} {} {}", t1, t2, l).unwrap();
+        }
+    }
+
+    {
+        let moveset = Crane::new(config);
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move_all.obj")
+            .unwrap();
+
+        for (p, _, _) in path.iter() {
+            let (t1, t2, l) = moveset.position_to_pose(*p);
+            writeln!(of, "{} {} {}", t1, t2, l).unwrap();
+        }
+    }
+}
+
+fn run_scan_scene() {
     let config = &(300., 20., [0., 0., 0.]);
     let area = Area::gen_from_obj_file("Block.obj", 150, 20., 20., 0.1);
     area.write_to_obj(&mut BufWriter::new(
@@ -203,6 +450,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
     let moveset = M::new(config);
 
     let step_length = area.block_width() * 3.0;
+    assert!(step_length > 0.);
     let mut route = Vec::from([Node {
         pos: start,
         root: 0,
@@ -217,7 +465,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
             for (idx, p1) in route.iter().map(|e| e.pos).enumerate() {
                 let direction_fix = end.sub(p1).normal().dot(p.sub(p1).normal());
                 // dbg!(direction_fix);
-                let l = p1.sub(p).length2() * (1.03 - direction_fix);
+                let l = p1.sub(p).length2() * (2.03 - direction_fix);
                 if l < l2 {
                     l2 = l;
                     nearest_idx = idx;
@@ -246,7 +494,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
                     + if idx == from_move_idx {
                         // random::<f64>() * 0.9
                         // 1. * random::<f64>()
-                        0.9
+                        2. * random::<f64>()
                     } else {
                         0.0
                     };
@@ -262,7 +510,10 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         // dbg!(step);
         let next_p = moveset.apply(base_point, nearest_idx, step);
 
-        if area.collide_point(next_p) || area.collide_line(base_point, next_p) {
+        if !moveset.valid(area, next_p)
+            || area.collide_point(next_p)
+            || area.collide_line(base_point, next_p)
+        {
             continue;
         }
         // route.push((base_idx, next_p));
@@ -275,8 +526,10 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         counter += 1;
         use index_xyz::*;
         if ([next_p[X], next_p[Y], 0.], [end[X], end[Y], 0.]).length2()
-            <= step_length * step_length * 4.
+            <= step_length * step_length * 1.
             && !area.collide_line(next_p, end)
+            && ((next_p[Z] - end[Z]).abs() < step_length * 5.)
+            && next_p[Z] >= end[Z]
         {
             break;
         }
@@ -311,7 +564,7 @@ fn eval(path: &[([f64; 3], usize, f64)]) -> usize {
     let mut last_move = path[0].1;
     for (_, m, _) in path.iter().copied() {
         if last_move != m {
-            fix += 10;
+            fix += 100;
         }
         last_move = m;
     }
