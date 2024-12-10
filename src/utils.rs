@@ -1,5 +1,7 @@
 // use std::marker::PhantomData;
 
+use std::fmt::Debug;
+
 #[macro_export]
 macro_rules! time {
     // ($st:ident) => {
@@ -117,4 +119,13 @@ pub fn write_line_to_obj<W: std::io::Write>(
     }
 
     Ok(())
+}
+
+pub trait StringErr<T> {
+    fn to_msg(self) -> Result<T, String>;
+}
+impl<T, E: ToString> StringErr<T> for Result<T, E> {
+    fn to_msg(self) -> Result<T, String> {
+        self.map_err(|e| e.to_string())
+    }
 }

@@ -62,6 +62,13 @@ pub struct Crane {
 }
 
 impl Crane {
+    pub fn new(config: &(f64, f64, [f64; 3])) -> Self {
+        Self {
+            l: config.0,
+            yaw_offs: config.1,
+            base: config.2,
+        }
+    }
     pub fn position_to_pose(&self, pos: [f64; 3]) -> (f64, f64, f64) {
         // y
         //
@@ -184,7 +191,59 @@ impl AsMove<3> for Crane {
     fn valid(&self, area: &Area, pos: [f64; 3]) -> bool {
         let (t1, t2, l) = self.position_to_pose(pos);
         let start_p = self.pose_to_position((t1, PI / 2., self.l));
+
         let end_p = self.pose_to_position((t1, t2, 0.));
-        l > 4. && (t2 > 0. && t2 < (PI / 180. * 75.)) & !area.collide_line(start_p, end_p)
+        // dbg!((t1, t2, l));
+        // dbg!((
+        //     l > 4.,
+        //     (t2 > 0. && t2 < (PI / 180. * 75.)),
+        //     !area.collide_line(start_p, end_p)
+        // ));
+        l > 0. && (t2 > 0. && t2 < (PI / 180. * 75.)) & !area.collide_line(start_p, end_p)
+    }
+}
+impl AsMove<2> for Crane {
+    type Config = (f64, f64, [f64; 3]);
+
+    fn new(config: &Self::Config) -> Self {
+        Self {
+            l: config.0,
+            yaw_offs: config.1,
+            base: config.2,
+        }
+    }
+
+    fn normals(&self, pos: [f64; 3]) -> [[f64; 3]; 2] {
+        let [x, y, z] = pos.sub(self.base);
+        let t1pos_normal = [0., 0., 1.].cross([x, y, 0.]).normal();
+        let t2pos_normal = t1pos_normal.cross([x, y, z]).normal();
+        // [t1pos_normal, t2pos_normal, [0., 0., -1.]]
+        [t1pos_normal, t2pos_normal]
+    }
+
+    fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
+        // const PI: f64 = std::f64::consts::PI;
+        let [x, y, _] = pos.sub(self.base);
+        let step_rad1 = step / (x * x + y * y).sqrt();
+        let step_rad2 = step / self.l;
+        let (t1, t2, l) = self.position_to_pose(pos);
+        let pose1 = match sel_idx {
+            0 => (t1 + step_rad1, t2, l),
+            1 => (t1, t2 + step_rad2, l),
+            2 => (t1, t2, l + step),
+            _ => unreachable!(),
+        };
+        self.pose_to_position(pose1)
+    }
+
+    fn default_move(&self) -> usize {
+        1
+    }
+
+    fn valid(&self, area: &Area, pos: [f64; 3]) -> bool {
+        let (t1, t2, l) = self.position_to_pose(pos);
+        let start_p = self.pose_to_position((t1, PI / 2., self.l));
+        let end_p = self.pose_to_position((t1, t2, 0.));
+        l > 0. && (t2 > 0. && t2 < (PI / 180. * 75.)) & !area.collide_line(start_p, end_p)
     }
 }

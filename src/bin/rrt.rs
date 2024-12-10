@@ -1,5 +1,5 @@
 use core::f64;
-use std::{fs, io::BufWriter};
+use std::{f64::consts::PI, fs, io::BufWriter};
 
 use box_gen::{
     cacl::{
@@ -11,18 +11,183 @@ use box_gen::{
     time,
     utils::{
         index_xyz::{self, Z},
-        write_line_to_obj,
+        write_line_to_obj, StringErr,
     },
 };
 use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use serde::{Deserialize, Serialize};
 use std::io::Write;
+#[derive(Debug, Serialize, Deserialize)]
+struct AppConfig {
+    rrt步长对block倍数: f64,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            rrt步长对block倍数: 5.0,
+        }
+    }
+}
+
+lazy_static::lazy_static!(
+    static ref CONFIG:AppConfig = new_config();
+);
+
+fn new_config() -> AppConfig {
+    let file = "config.json";
+    let f: Result<AppConfig, String> = (|| {
+        let f = fs::read_to_string(file).to_msg()?;
+        let a = serde_json::from_str(&f).to_msg()?;
+        a
+    })();
+    match f {
+        Ok(f) => f,
+        Err(e) => {
+            dbg!(e);
+            let c = AppConfig::default();
+            let s = serde_json::to_string_pretty(&c).unwrap();
+            let mut f = fs::OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .create(true)
+                .open(file)
+                .unwrap();
+            write!(f, "{}", s).unwrap();
+
+            c
+        }
+    }
+}
+
 fn main() {
     time!(main);
-    run_scan_scene20241204();
+    run_scan_scene20241210();
     // run_scan_scene();
     time!(main, "main")
 }
+fn run_scan_scene20241210() {
+    // let config = &(18.981, -1., [-15.6384, -10.2941, -11.8289]);
+    let config = &(5.15744, -0.252292, [2.493617, -1.038677, 1.021000]);
+
+    let area = Area::gen_from_obj_file(
+        r#"C:\Users\yaoyj\Desktop\2024-12-10\env.obj"#,
+        300,
+        20.,
+        20.,
+        0.02,
+    );
+    area.write_to_obj(&mut BufWriter::new(
+        fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_area.obj")
+            .unwrap(),
+    ))
+    .unwrap();
+    area.write_info(
+        &mut fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/info.txt")
+            .unwrap(),
+    )
+    .unwrap();
+    let path = {
+        let (start, end) = (
+            [7.011840, -2.013177, 0.397000],
+            [7.107685, 0.592520, 0.928000],
+        );
+        // let (start, end) = (
+        //     [-6.454714, -2.040601, 0.597431],
+        //     [-2.407892, -6.342020, 0.597431],
+        // );
+        dbg!(start, end);
+
+        // let path = rrt_move::<3, XYZ>(&(), &area, start, end);
+        // let mut best_path = path;
+        // for _ in 0..10 {
+        //     dbg!();
+        //     let path = rrt_move::<3, XYZ>(&(), &area, start, end);
+        //     if path.len() < best_path.len() {
+        //         best_path = path;
+        //     }
+        // }
+
+        let paths = (0..1024)
+            .into_par_iter()
+            .map(|i| {
+                let p = rrt_move::<2, Crane>(config, &area, start, end, 5000);
+                dbg!(i);
+                p
+            })
+            .filter_map(|p| p)
+            .collect::<Vec<_>>();
+        dbg!(paths.len());
+        // best_path
+        paths
+            .into_iter()
+            .min_by(|a, b| eval(a).cmp(&eval(b)))
+            .unwrap_or(Vec::from([(start, 0, 0.), (end, 0, 0.)]))
+    };
+    write_line_to_obj(
+        &mut BufWriter::new(
+            fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open("temp/rrt_path.obj")
+                .unwrap(),
+        ),
+        path.iter().map(|(a, _, _)| *a),
+    )
+    .unwrap();
+    {
+        let moveset = Crane::new(config);
+        let mut v = Vec::new();
+        let mut last_pos = path[0].0;
+        v.push(last_pos);
+        let mut last_m = path[0].1;
+        for (i, (pos, m, _)) in path.iter().copied().enumerate() {
+            if m != last_m || i == path.len() - 1 {
+                v.push(last_pos);
+            }
+            last_pos = pos;
+            last_m = m;
+        }
+
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move.csv")
+            .unwrap();
+        let rad_to_deg = 180. / PI;
+        for p in v {
+            let (t1, t2, l) = moveset.position_to_pose(p);
+            writeln!(of, "{:.4},{:.4},{:.4}", t1 * rad_to_deg, t2 * rad_to_deg, l).unwrap();
+        }
+    }
+
+    {
+        let moveset = Crane::new(config);
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move_all.obj")
+            .unwrap();
+
+        for (p, _, _) in path.iter() {
+            let (t1, t2, l) = moveset.position_to_pose(*p);
+            writeln!(of, "{:.4} {:.4} {:.4}", t1, t2, l).unwrap();
+        }
+    }
+}
+
 fn run_scan_scene20241204() {
     // let config = &(18.981, -1., [-15.6384, -10.2941, -11.8289]);
     let config = &(18.981, -1., [0., 0., 0.]);
@@ -81,7 +246,7 @@ fn run_scan_scene20241204() {
         let paths = (0..4096)
             .into_par_iter()
             .map(|i| {
-                let p = rrt_move::<3, Crane>(config, &area, start, end, 2500);
+                let p = rrt_move::<2, Crane>(config, &area, start, end, 2500);
                 dbg!(i);
                 p
             })
@@ -124,12 +289,12 @@ fn run_scan_scene20241204() {
             .create(true)
             .write(true)
             .truncate(true)
-            .open("temp/rrt_move.obj")
+            .open("temp/rrt_move.csv")
             .unwrap();
-
+        let rad_to_deg = 180. / PI;
         for p in v {
             let (t1, t2, l) = moveset.position_to_pose(p);
-            writeln!(of, "{} {} {}", t1, t2, l).unwrap();
+            writeln!(of, "{},{},{}", t1 * rad_to_deg, t2 * rad_to_deg, l).unwrap();
         }
     }
 
@@ -449,7 +614,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
     }
     let moveset = M::new(config);
 
-    let step_length = area.block_width() * 3.0;
+    let step_length = area.block_width() * 5.0;
     assert!(step_length > 0.);
     let mut route = Vec::from([Node {
         pos: start,
@@ -514,6 +679,14 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
             || area.collide_point(next_p)
             || area.collide_line(base_point, next_p)
         {
+            let len = route.len();
+            // dbg!(
+            //     len,
+            //     next_p,
+            //     moveset.valid(area, next_p),
+            //     area.collide_point(next_p),
+            //     area.collide_line(base_point, next_p)
+            // );
             continue;
         }
         // route.push((base_idx, next_p));
@@ -526,10 +699,10 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         counter += 1;
         use index_xyz::*;
         if ([next_p[X], next_p[Y], 0.], [end[X], end[Y], 0.]).length2()
-            <= step_length * step_length * 1.
+            <= step_length * step_length * 4.
             && !area.collide_line(next_p, end)
-            && ((next_p[Z] - end[Z]).abs() < step_length * 5.)
-            && next_p[Z] >= end[Z]
+        // && ((next_p[Z] - end[Z]).abs() < step_length * 5.)
+        // && next_p[Z] >= end[Z]
         {
             break;
         }
@@ -569,4 +742,19 @@ fn eval(path: &[([f64; 3], usize, f64)]) -> usize {
         last_move = m;
     }
     path.len() + fix
+}
+
+#[test]
+fn t() {
+    let base = [370700.255, 4304529.799, 46.848];
+    use box_gen::cacl::point::PointTrait;
+
+    let a吊钩旋转中心 = [370702.4682042303, 4304536.876396358, 49.265];
+    dbg!(a吊钩旋转中心.sub(base));
+    let a变幅中心 = [370701.4836496849, 4304532.010081603, 47.869];
+    dbg!(a变幅中心.sub(base));
+    let start = [370702.2681766035, 4304536.810839642, 47.245];
+    dbg!(start.sub(base));
+    let end = [370699.6624795006, 4304536.906685061, 47.776];
+    dbg!(end.sub(base));
 }
