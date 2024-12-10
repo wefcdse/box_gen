@@ -1,6 +1,6 @@
 // use std::marker::PhantomData;
 
-use std::fmt::Debug;
+use std::sync::atomic::AtomicUsize;
 
 #[macro_export]
 macro_rules! time {
@@ -121,11 +121,41 @@ pub fn write_line_to_obj<W: std::io::Write>(
     Ok(())
 }
 
+pub fn write_line_to_obj_r90<W: std::io::Write>(
+    file: &mut W,
+    line: impl Iterator<Item = [f64; 3]>,
+) -> std::io::Result<()> {
+    use index_xyz::*;
+    let mut len = 0;
+    for point in line {
+        writeln!(file, "v {} {} {}", -point[Y], point[X], point[Z])?;
+        len += 1;
+    }
+    for i in 1..len {
+        writeln!(file, "l {} {}", i, i + 1)?;
+    }
+
+    Ok(())
+}
+
 pub trait StringErr<T> {
     fn to_msg(self) -> Result<T, String>;
 }
 impl<T, E: ToString> StringErr<T> for Result<T, E> {
     fn to_msg(self) -> Result<T, String> {
         self.map_err(|e| e.to_string())
+    }
+}
+
+pub struct Counter(AtomicUsize);
+impl Counter {
+    pub fn new() -> Self {
+        Self(AtomicUsize::new(0))
+    }
+    pub fn show(&self) -> usize {
+        self.0.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn count(&self) {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 }

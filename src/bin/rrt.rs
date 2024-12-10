@@ -1,72 +1,156 @@
 use core::f64;
-use std::{f64::consts::PI, fs, io::BufWriter};
+use std::{f64::consts::PI, fs, io::BufWriter, path::PathBuf};
 
 use box_gen::{
     cacl::{
         lerp::Lerp,
         point::{Point2Trait, PointTrait},
     },
+    config::CONFIG,
     path_planning::{AsMove, Crane},
     support_type::Area,
     time,
     utils::{
         index_xyz::{self, Z},
-        write_line_to_obj, StringErr,
+        write_line_to_obj, write_line_to_obj_r90, Counter,
     },
 };
 use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use serde::{Deserialize, Serialize};
 use std::io::Write;
-#[derive(Debug, Serialize, Deserialize)]
-struct AppConfig {
-    rrt步长对block倍数: f64,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            rrt步长对block倍数: 5.0,
-        }
-    }
-}
-
-lazy_static::lazy_static!(
-    static ref CONFIG:AppConfig = new_config();
-);
-
-fn new_config() -> AppConfig {
-    let file = "config.json";
-    let f: Result<AppConfig, String> = (|| {
-        let f = fs::read_to_string(file).to_msg()?;
-        let a = serde_json::from_str(&f).to_msg()?;
-        a
-    })();
-    match f {
-        Ok(f) => f,
-        Err(e) => {
-            dbg!(e);
-            let c = AppConfig::default();
-            let s = serde_json::to_string_pretty(&c).unwrap();
-            let mut f = fs::OpenOptions::new()
-                .write(true)
-                .truncate(true)
-                .create(true)
-                .open(file)
-                .unwrap();
-            write!(f, "{}", s).unwrap();
-
-            c
-        }
-    }
-}
 
 fn main() {
     time!(main);
-    run_scan_scene20241210();
+    run_config();
     // run_scan_scene();
     time!(main, "main")
 }
+fn run_config() {
+    // let config = &(18.981, -1., [-15.6384, -10.2941, -11.8289]);
+    let config = &(
+        CONFIG.吊臂长度,
+        CONFIG.变幅中心对回转中心偏移,
+        CONFIG.吊车回转中心水平坐标和变幅中心垂直坐标,
+    );
+
+    let area = Area::gen_from_obj_file(
+        &CONFIG.文件名称,
+        CONFIG.网格分割数量,
+        CONFIG.上方偏移,
+        CONFIG.下方偏移,
+        CONFIG.偏移,
+    );
+    area.write_to_obj(&mut BufWriter::new(
+        fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_area.obj")
+            .unwrap(),
+    ))
+    .unwrap();
+    area.write_info(
+        &mut fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/info.txt")
+            .unwrap(),
+    )
+    .unwrap();
+    let path = {
+        let (start, end) = (CONFIG.起始点, CONFIG.目标点);
+        // let (start, end) = (
+        //     [-6.454714, -2.040601, 0.597431],
+        //     [-2.407892, -6.342020, 0.597431],
+        // );
+        dbg!(start, end);
+
+        // let path = rrt_move::<3, XYZ>(&(), &area, start, end);
+        // let mut best_path = path;
+        // for _ in 0..10 {
+        //     dbg!();
+        //     let path = rrt_move::<3, XYZ>(&(), &area, start, end);
+        //     if path.len() < best_path.len() {
+        //         best_path = path;
+        //     }
+        // }
+        let counter = Counter::new();
+        let paths = (0..CONFIG.rrt路径生成次数)
+            .into_par_iter()
+            .map(|_i| {
+                let p = rrt_move::<2, Crane>(config, &area, start, end, CONFIG.rrt最大尝试采样次数);
+                // dbg!(i);
+                counter.count();
+                if counter.show() % 10 == 0 {
+                    println!("done {}", counter.show());
+                }
+                p
+            })
+            .filter_map(|p| p)
+            .collect::<Vec<_>>();
+        dbg!(paths.len());
+        // best_path
+        paths
+            .into_iter()
+            .min_by(|a, b| eval(a).cmp(&eval(b)))
+            .unwrap_or(Vec::from([(start, 0, 0.), (end, 0, 0.)]))
+    };
+    write_line_to_obj_r90(
+        &mut BufWriter::new(
+            fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open("temp/rrt_path.obj")
+                .unwrap(),
+        ),
+        path.iter().map(|(a, _, _)| *a),
+    )
+    .unwrap();
+    {
+        let moveset = Crane::new(config);
+        let mut v = Vec::new();
+        let mut last_pos = path[0].0;
+        v.push(last_pos);
+        let mut last_m = path[0].1;
+        for (i, (pos, m, _)) in path.iter().copied().enumerate() {
+            if m != last_m || i == path.len() - 1 {
+                v.push(last_pos);
+            }
+            last_pos = pos;
+            last_m = m;
+        }
+
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move.csv")
+            .unwrap();
+        let rad_to_deg = 180. / PI;
+        for p in v {
+            let (t1, t2, l) = moveset.position_to_pose(p);
+            writeln!(of, "{:.4},{:.4},{:.4}", t1 * rad_to_deg, t2 * rad_to_deg, l).unwrap();
+        }
+    }
+
+    {
+        let moveset = Crane::new(config);
+        let mut of = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("temp/rrt_move_all.obj")
+            .unwrap();
+
+        for (p, _, _) in path.iter() {
+            let (t1, t2, l) = moveset.position_to_pose(*p);
+            writeln!(of, "{:.4} {:.4} {:.4}", t1, t2, l).unwrap();
+        }
+    }
+}
+
 fn run_scan_scene20241210() {
     // let config = &(18.981, -1., [-15.6384, -10.2941, -11.8289]);
     let config = &(5.15744, -0.252292, [2.493617, -1.038677, 1.021000]);
@@ -614,7 +698,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
     }
     let moveset = M::new(config);
 
-    let step_length = area.block_width() * 5.0;
+    let step_length = area.block_width() * CONFIG.rrt步长对block倍数;
     assert!(step_length > 0.);
     let mut route = Vec::from([Node {
         pos: start,
@@ -679,7 +763,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
             || area.collide_point(next_p)
             || area.collide_line(base_point, next_p)
         {
-            let len = route.len();
+            // let len = route.len();
             // dbg!(
             //     len,
             //     next_p,
@@ -699,7 +783,10 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         counter += 1;
         use index_xyz::*;
         if ([next_p[X], next_p[Y], 0.], [end[X], end[Y], 0.]).length2()
-            <= step_length * step_length * 4.
+            <= step_length
+                * step_length
+                * CONFIG.rrt终止点最大距离对block倍数
+                * CONFIG.rrt终止点最大距离对block倍数
             && !area.collide_line(next_p, end)
         // && ((next_p[Z] - end[Z]).abs() < step_length * 5.)
         // && next_p[Z] >= end[Z]
@@ -757,4 +844,22 @@ fn t() {
     dbg!(start.sub(base));
     let end = [370699.6624795006, 4304536.906685061, 47.776];
     dbg!(end.sub(base));
+}
+#[test]
+fn t1() {
+    let a = 121.509361507;
+    let b = 38.880187530;
+    // let (y, x, z) = utm::to_utm_wgs84(b, a, 51);
+
+    let [x, y] = jwd经纬度到xy(a, b);
+    let (x1, y1) = (370702.4682042303, 4304536.876396358);
+    dbg!((x - x1).abs() < 0.001, (y - y1).abs() < 0.001);
+}
+
+fn jwd经纬度到xy(经度: f64, 纬度: f64) -> [f64; 2] {
+    assert!(经度 > 0., "别去西半球");
+    let z1 = (经度.floor() / 6.).floor() as u8 + 31;
+    dbg!(z1);
+    let (y, x, _) = utm::to_utm_wgs84(纬度, 经度, z1);
+    [x, y]
 }

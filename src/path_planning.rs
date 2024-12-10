@@ -1,6 +1,6 @@
 use std::{f64::consts::PI, ops::Sub};
 
-use crate::{cacl::point::PointTrait, disable, support_type::Area};
+use crate::{cacl::point::PointTrait, config::CONFIG, disable, support_type::Area};
 
 pub trait AsMove<const L: usize> {
     type Config;
@@ -199,7 +199,9 @@ impl AsMove<3> for Crane {
         //     (t2 > 0. && t2 < (PI / 180. * 75.)),
         //     !area.collide_line(start_p, end_p)
         // ));
-        l > 0. && (t2 > 0. && t2 < (PI / 180. * 75.)) & !area.collide_line(start_p, end_p)
+        l > 0.
+            && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度))
+                & !area.collide_line(start_p, end_p)
     }
 }
 impl AsMove<2> for Crane {
@@ -244,6 +246,8 @@ impl AsMove<2> for Crane {
         let (t1, t2, l) = self.position_to_pose(pos);
         let start_p = self.pose_to_position((t1, PI / 2., self.l));
         let end_p = self.pose_to_position((t1, t2, 0.));
-        l > 0. && (t2 > 0. && t2 < (PI / 180. * 75.)) & !area.collide_line(start_p, end_p)
+        l > 0.
+            && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度))
+                & !area.collide_line(start_p, end_p)
     }
 }
