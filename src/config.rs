@@ -10,6 +10,8 @@ pub struct AppConfig {
     pub rrt最大尝试采样次数: usize,
     pub rrt路径生成次数: usize,
     pub rrt终止点最大距离对block倍数: f64,
+    pub rrt动作切换惩罚系数: usize,
+    pub rrt动作保持强度: f64,
 
     pub 文件名称: PathBuf,
     pub 网格分割数量: usize,
@@ -24,6 +26,8 @@ pub struct AppConfig {
     pub 吊车回转中心水平坐标和变幅中心垂直坐标: [f64; 3],
     pub 吊车最大变幅角度: f64,
     pub 变幅中心对回转中心偏移: f64,
+
+    pub 输出回转修正: f64,
 }
 
 impl Default for AppConfig {
@@ -33,6 +37,8 @@ impl Default for AppConfig {
             rrt最大尝试采样次数: 5000,
             rrt路径生成次数: 1024,
             rrt终止点最大距离对block倍数: 2.0,
+            rrt动作切换惩罚系数: 100,
+            rrt动作保持强度: 2.,
 
             文件名称: r#"C:\Users\yaoyj\Desktop\2024-12-10\env.obj"#.into(),
             网格分割数量: 300,
@@ -49,6 +55,8 @@ impl Default for AppConfig {
             ],
             吊车最大变幅角度: 75.,
             变幅中心对回转中心偏移: -0.252292,
+
+            输出回转修正: 0.0,
         }
     }
 }

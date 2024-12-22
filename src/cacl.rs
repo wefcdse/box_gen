@@ -297,3 +297,11 @@ pub mod point {
         dbg!(random::<[f64; 3]>());
     }
 }
+
+pub fn jwd经纬度到xy(经度: f64, 纬度: f64) -> [f64; 2] {
+    assert!(经度 > 0., "别去西半球");
+    let z1 = (经度.floor() / 6.).floor() as u8 + 31;
+    dbg!(z1);
+    let (y, x, _) = utm::to_utm_wgs84(纬度, 经度, z1);
+    [x, y]
+}

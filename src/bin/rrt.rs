@@ -96,7 +96,7 @@ fn run_config() {
             .min_by(|a, b| eval(a).cmp(&eval(b)))
             .unwrap_or(Vec::from([(start, 0, 0.), (end, 0, 0.)]))
     };
-    write_line_to_obj_r90(
+    write_line_to_obj(
         &mut BufWriter::new(
             fs::OpenOptions::new()
                 .create(true)
@@ -131,7 +131,14 @@ fn run_config() {
         let rad_to_deg = 180. / PI;
         for p in v {
             let (t1, t2, l) = moveset.position_to_pose(p);
-            writeln!(of, "{:.4},{:.4},{:.4}", t1 * rad_to_deg, t2 * rad_to_deg, l).unwrap();
+            writeln!(
+                of,
+                "{:.4},{:.4},{:.4}",
+                t1 * rad_to_deg - CONFIG.输出回转修正,
+                t2 * rad_to_deg,
+                l
+            )
+            .unwrap();
         }
     }
 
@@ -743,7 +750,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
                     + if idx == from_move_idx {
                         // random::<f64>() * 0.9
                         // 1. * random::<f64>()
-                        2. * random::<f64>()
+                        CONFIG.rrt动作保持强度 * random::<f64>()
                     } else {
                         0.0
                     };
@@ -824,7 +831,7 @@ fn eval(path: &[([f64; 3], usize, f64)]) -> usize {
     let mut last_move = path[0].1;
     for (_, m, _) in path.iter().copied() {
         if last_move != m {
-            fix += 100;
+            fix += CONFIG.rrt动作切换惩罚系数;
         }
         last_move = m;
     }
@@ -845,21 +852,18 @@ fn t() {
     let end = [370699.6624795006, 4304536.906685061, 47.776];
     dbg!(end.sub(base));
 }
-#[test]
-fn t1() {
-    let a = 121.509361507;
-    let b = 38.880187530;
-    // let (y, x, z) = utm::to_utm_wgs84(b, a, 51);
+#[cfg(test)]
+mod t {
+    use box_gen::cacl::jwd经纬度到xy;
 
-    let [x, y] = jwd经纬度到xy(a, b);
-    let (x1, y1) = (370702.4682042303, 4304536.876396358);
-    dbg!((x - x1).abs() < 0.001, (y - y1).abs() < 0.001);
-}
+    #[test]
+    fn t1() {
+        let a = 121.509361507;
+        let b = 38.880187530;
+        // let (y, x, z) = utm::to_utm_wgs84(b, a, 51);
 
-fn jwd经纬度到xy(经度: f64, 纬度: f64) -> [f64; 2] {
-    assert!(经度 > 0., "别去西半球");
-    let z1 = (经度.floor() / 6.).floor() as u8 + 31;
-    dbg!(z1);
-    let (y, x, _) = utm::to_utm_wgs84(纬度, 经度, z1);
-    [x, y]
+        let [x, y] = jwd经纬度到xy(a, b);
+        let (x1, y1) = (370702.4682042303, 4304536.876396358);
+        dbg!((x - x1).abs() < 0.001, (y - y1).abs() < 0.001);
+    }
 }

@@ -151,6 +151,14 @@ fn a() {
     )
     .unwrap();
 }
+impl Crane {
+    pub fn step_at(&self, pos: [f64; 3]) -> (f64, f64, f64) {
+        let [x, y, _] = pos.sub(self.base);
+        let step_rad1 = 1. / (x * x + y * y).sqrt();
+        let step_rad2 = 1. / self.l;
+        (step_rad1, step_rad2, 1.)
+    }
+}
 impl AsMove<3> for Crane {
     type Config = (f64, f64, [f64; 3]);
 
@@ -163,9 +171,14 @@ impl AsMove<3> for Crane {
     }
 
     fn normals(&self, pos: [f64; 3]) -> [[f64; 3]; 3] {
-        let [x, y, z] = pos.sub(self.base);
-        let t1pos_normal = [0., 0., 1.].cross([x, y, 0.]).normal();
-        let t2pos_normal = t1pos_normal.cross([x, y, z]).normal();
+        // let [x, y, z] = pos.sub(self.base);
+        let (t1, t2, _) = self.position_to_pose(pos);
+        // dbg!([-t1.sin(), t1.cos(), 0.]);
+        // dbg!([-t2.sin() * -t1.sin(), -t2.sin() * t1.cos(), t2.cos()]);
+        let t1pos_normal = [-t1.sin(), t1.cos(), 0.];
+        let t2pos_normal = [-t2.sin() * t1.cos(), -t2.sin() * t1.sin(), t2.cos()];
+        // let t1pos_normal = [0., 0., 1.].cross([x, y, 0.]).normal();
+        // let t2pos_normal = t1pos_normal.cross([x, y, z]).normal();
         [t1pos_normal, t2pos_normal, [0., 0., -1.]]
     }
 
@@ -216,10 +229,14 @@ impl AsMove<2> for Crane {
     }
 
     fn normals(&self, pos: [f64; 3]) -> [[f64; 3]; 2] {
-        let [x, y, z] = pos.sub(self.base);
-        let t1pos_normal = [0., 0., 1.].cross([x, y, 0.]).normal();
-        let t2pos_normal = t1pos_normal.cross([x, y, z]).normal();
-        // [t1pos_normal, t2pos_normal, [0., 0., -1.]]
+        // let [x, y, z] = pos.sub(self.base);
+        let (t1, t2, _) = self.position_to_pose(pos);
+        // dbg!([-t1.sin(), t1.cos(), 0.]);
+        // dbg!([-t2.sin() * -t1.sin(), -t2.sin() * t1.cos(), t2.cos()]);
+        let t1pos_normal = [-t1.sin(), t1.cos(), 0.];
+        let t2pos_normal = [-t2.sin() * t1.cos(), -t2.sin() * t1.sin(), t2.cos()];
+        // let t1pos_normal = [0., 0., 1.].cross([x, y, 0.]).normal();
+        // let t2pos_normal = t1pos_normal.cross([x, y, z]).normal();
         [t1pos_normal, t2pos_normal]
     }
 
