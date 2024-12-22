@@ -39,3 +39,8 @@ bench = false
 name = "precise"
 test = false
 bench = false
+
+[[bin]]
+name = "transform"
+test = false
+bench = false
