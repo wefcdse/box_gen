@@ -7,7 +7,8 @@ use box_gen::{
 };
 
 fn main() {
-    let 吊臂长度 = 5.38626;
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    let 吊臂长度 = 5.86;
     let 变幅中心对回转中心偏移 = -0.262292;
 
     // let direction_vec = [2.3094311117840, 0.5238344, 7.8212];
@@ -15,12 +16,13 @@ fn main() {
     let direction_vec = [1.7576, -2.8416899044, 7.8212];
     let direction_vec = [1.74822, 0.858877, 7.8212];
     let direction_vec = [2.0088712, 0.05344, 7.8212];
+    let direction_vec = [-1.5085642165859, 3.21265577020832, 7.8212];
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    let position_vec = direction_vec.scale(88. / direction_vec[2]);
+    let position_vec = direction_vec.scale(60. / direction_vec[2]);
 
     dbg!(position_vec);
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    let yaw_deg_gps = 274.889;
+    let yaw_deg_gps = 99.572;
 
     let yaw_deg = 270. - yaw_deg_gps;
     let deg_to_rad = PI / 180.;
@@ -30,7 +32,7 @@ fn main() {
     let cos = yaw_rad.cos();
     let [x, y, z] = position_vec;
     let [x, y, z] = [y, x, z];
-    // let [x, y] = [x * cos - y * sin, x * sin + y * cos];
+    let [x, y] = [x * cos - y * sin, x * sin + y * cos];
     let position_vec = [x, y, z];
     dbg!(position_vec);
     // real = 0,-23
@@ -45,10 +47,12 @@ fn main() {
     // let 定位点世界坐标系 = jwd经纬度到xy(定位坐标原点经纬度高度[0], 定位坐标原点经纬度高度[1])
     //     .wrap()
     //     .extend_one(定位坐标原点经纬度高度[2]);
-    let 吊车世界坐标系 = [-1.213607, 3.269370, 0.97];
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    let 吊车世界坐标系 = [-0.693349, 6.783254, 0.933409];
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     let 定位点世界坐标系 = [-1.055474437889643, -1.3575758170336485, 0.6529999999999987];
     let 定位点世界坐标系 = [-0.9611894839326851, -1.4975408306345344, 0.6529999999999987];
+    let 定位点世界坐标系 = [-2.252729, 1.757616, 0.304000];
     // let dbg目标点世界坐标系 = jwd经纬度到xy(dbg目标点经纬度高度[0], dbg目标点经纬度高度[1])
     //     .wrap()
     //     .extend_one(dbg目标点经纬度高度[2]);
@@ -84,7 +88,7 @@ fn main() {
     let rad2deg = 180. / PI;
     let (st1, st2, sl) = (st1 * t1 * rad2deg, st2 * t2 * rad2deg, sl * l);
     dbg!(st1, st2, sl);
-    fs::write("./temp/d.csv", format!("{},{},{}", dt0, dt1, dl)).unwrap();
+    fs::write("./temp/d.txt", format!("{},{},{}", dt0, dt1, dl)).unwrap();
     // dbg!(base.transpose().determinant());
     // println!("{:.5}", base);
     // dbg!(base.is_invertible());

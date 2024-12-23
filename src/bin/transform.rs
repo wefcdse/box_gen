@@ -33,10 +33,10 @@ fn main() {
         (t0, t1, l)
     };
     let mut o = String::new();
-    o += &format!("{},{},{}\n", st0, st1, sl);
-    o += &format!("{},{},{}\n", st0 + dt0, st1, sl);
-    o += &format!("{},{},{}\n", st0 + dt0, st1 + dt1, sl);
-    o += &format!("{},{},{}\n", st0 + dt0, st1 + dt1, sl + dl);
+    o += &format!("{:.4},{:.4},{:.4}\n", st0, st1, sl);
+    o += &format!("{:.4},{:.4},{:.4}\n", st0 + dt0, st1, sl);
+    o += &format!("{:.4},{:.4},{:.4}\n", st0 + dt0, st1 + dt1, sl);
+    o += &format!("{:.4},{:.4},{:.4}\n", st0 + dt0, st1 + dt1, sl + dl);
     fs::write(out, o).unwrap();
     // dbg!(s);
 }
