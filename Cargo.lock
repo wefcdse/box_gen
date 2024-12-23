@@ -86,6 +86,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
+ "stupid_utils",
  "utm",
 ]
 
@@ -224,6 +225,17 @@ name = "fastrand"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "486f806e73c5707928240ddc295403b1b93c96a02038563881c4a2fd84b81ac4"
+
+[[package]]
+name = "functional_trait"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ad1f68916b0e03fba465ba7863e9c2de14cdd8ac4d37874761cdef84486abb4"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "getrandom"
@@ -589,6 +601,15 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "stupid_utils"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6ff1cb4a5db736fda0acb1d2dc459dad4b9e370c5504d29dbea5db164e489cd"
+dependencies = [
+ "functional_trait",
+]
 
 [[package]]
 name = "syn"

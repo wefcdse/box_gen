@@ -14,12 +14,13 @@ fn main() {
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     let direction_vec = [1.7576, -2.8416899044, 7.8212];
     let direction_vec = [1.74822, 0.858877, 7.8212];
+    let direction_vec = [2.0088712, 0.05344, 7.8212];
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    let position_vec = direction_vec.scale(80. / direction_vec[2]);
+    let position_vec = direction_vec.scale(88. / direction_vec[2]);
 
     dbg!(position_vec);
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    let yaw_deg_gps = 248.;
+    let yaw_deg_gps = 274.889;
 
     let yaw_deg = 270. - yaw_deg_gps;
     let deg_to_rad = PI / 180.;
@@ -47,6 +48,7 @@ fn main() {
     let 吊车世界坐标系 = [-1.213607, 3.269370, 0.97];
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     let 定位点世界坐标系 = [-1.055474437889643, -1.3575758170336485, 0.6529999999999987];
+    let 定位点世界坐标系 = [-0.9611894839326851, -1.4975408306345344, 0.6529999999999987];
     // let dbg目标点世界坐标系 = jwd经纬度到xy(dbg目标点经纬度高度[0], dbg目标点经纬度高度[1])
     //     .wrap()
     //     .extend_one(dbg目标点经纬度高度[2]);
@@ -82,7 +84,7 @@ fn main() {
     let rad2deg = 180. / PI;
     let (st1, st2, sl) = (st1 * t1 * rad2deg, st2 * t2 * rad2deg, sl * l);
     dbg!(st1, st2, sl);
-    fs::write("./temp/precese.csv", format!("{},{},{}", dt0, dt1, dl)).unwrap();
+    fs::write("./temp/d.csv", format!("{},{},{}", dt0, dt1, dl)).unwrap();
     // dbg!(base.transpose().determinant());
     // println!("{:.5}", base);
     // dbg!(base.is_invertible());
