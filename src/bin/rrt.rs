@@ -26,13 +26,16 @@ fn main() {
     time!(main, "main")
 }
 fn run_config() {
+    let rad_to_deg = 180. / PI;
     // let config = &(18.981, -1., [-15.6384, -10.2941, -11.8289]);
     let config = &(
         CONFIG.吊臂长度,
         CONFIG.变幅中心对回转中心偏移,
         CONFIG.吊车回转中心水平坐标和变幅中心垂直坐标,
     );
-
+    let moveset = Crane::new(config);
+    let (t0, t1, l) = dbg!(moveset.position_to_pose(CONFIG.起始点));
+    dbg!(t1 * rad_to_deg);
     let area = Area::gen_from_obj_file(
         &CONFIG.文件名称,
         CONFIG.网格分割数量,
@@ -110,6 +113,7 @@ fn run_config() {
     .unwrap();
     {
         let moveset = Crane::new(config);
+        // dbg!(moveset.position_to_pose(CONFIG.起始点));
         let mut v = Vec::new();
         let mut last_pos = path[0].0;
         v.push(last_pos);
@@ -135,7 +139,7 @@ fn run_config() {
                 of,
                 "{:.4},{:.4},{:.4}",
                 t1 * rad_to_deg - CONFIG.输出回转修正,
-                t2 * rad_to_deg,
+                t2 * rad_to_deg + CONFIG.输出变幅修正,
                 l
             )
             .unwrap();

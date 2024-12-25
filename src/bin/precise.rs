@@ -17,8 +17,9 @@ fn main() {
     let direction_vec = [1.74822, 0.858877, 7.8212];
     let direction_vec = [2.0088712, 0.05344, 7.8212];
     let direction_vec = [-1.5085642165859, 3.21265577020832, 7.8212];
+    let direction_vec = [-1.1088444, 0.543789, 7.8212];
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    let position_vec = direction_vec.scale(60. / direction_vec[2]);
+    let position_vec = direction_vec.scale(61. / direction_vec[2]);
 
     dbg!(position_vec);
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!

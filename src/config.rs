@@ -28,6 +28,7 @@ pub struct AppConfig {
     pub 变幅中心对回转中心偏移: f64,
 
     pub 输出回转修正: f64,
+    pub 输出变幅修正: f64,
 }
 
 impl Default for AppConfig {
@@ -57,6 +58,7 @@ impl Default for AppConfig {
             变幅中心对回转中心偏移: -0.252292,
 
             输出回转修正: 0.0,
+            输出变幅修正: 0.0,
         }
     }
 }
