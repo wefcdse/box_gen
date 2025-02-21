@@ -744,32 +744,32 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         };
 
         let direction = p.sub(base_point).normal();
-        // let moves = moveset.normals(base_point);
-        // // 选择最接近的方向
-        // let nearest_idx = moves
-        //     .into_iter()
-        //     .enumerate()
-        //     .fold((f64::MIN, 0), |(max_abs, max_idx), (idx, normal)| {
-        //         let abs = normal.dot(direction).abs()
-        //             + if idx == from_move_idx {
-        //                 // random::<f64>() * 0.9
-        //                 // 1. * random::<f64>()
-        //                 CONFIG.rrt动作保持强度 * random::<f64>()
-        //             } else {
-        //                 0.0
-        //             };
-        //         if abs > max_abs {
-        //             (abs, idx)
-        //         } else {
-        //             (max_abs, max_idx)
-        //         }
-        //     })
-        //     .1;
-        // // dbg!(nearest_idx);
-        // let step = moves[nearest_idx].dot(direction).signum() * step_length;
+        let moves = moveset.normals(base_point);
+        // 选择最接近的方向
+        let nearest_idx = moves
+            .into_iter()
+            .enumerate()
+            .fold((f64::MIN, 0), |(max_abs, max_idx), (idx, normal)| {
+                let abs = normal.dot(direction).abs()
+                    + if idx == from_move_idx {
+                        // random::<f64>() * 0.9
+                        // 1. * random::<f64>()
+                        CONFIG.rrt动作保持强度 * random::<f64>()
+                    } else {
+                        0.0
+                    };
+                if abs > max_abs {
+                    (abs, idx)
+                } else {
+                    (max_abs, max_idx)
+                }
+            })
+            .1;
+        // dbg!(nearest_idx);
+        let step = moves[nearest_idx].dot(direction).signum() * step_length;
         // dbg!(step);
-        // let next_p = moveset.apply(base_point, nearest_idx, step);
-        let next_p = base_point.add(direction.scale(step_length));
+        let next_p = moveset.apply(base_point, nearest_idx, step);
+        // let next_p = base_point.add(direction.scale(step_length));
 
         if !moveset.valid(area, next_p)
             || area.collide_point(next_p)
@@ -789,8 +789,8 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         route.push(Node {
             pos: next_p,
             root: base_idx,
-            from_move_idx: 0,
-            from_move_step: 0.,
+            from_move_idx: nearest_idx,
+            from_move_step: step,
         });
         counter += 1;
         use index_xyz::*;

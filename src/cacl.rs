@@ -2,25 +2,28 @@ use obj::Position;
 
 use crate::{config::CONFIG, support_type::Area, time};
 
+// 计算两个位置的最小值
 pub fn min_p(a: Position, b: Position) -> Position {
     Position {
         position: [
-            a.position[0].min(b.position[0]),
-            a.position[1].min(b.position[1]),
-            a.position[2].min(b.position[2]),
-        ],
-    }
-}
-pub fn max_p(a: Position, b: Position) -> Position {
-    Position {
-        position: [
-            a.position[0].max(b.position[0]),
-            a.position[1].max(b.position[1]),
-            a.position[2].max(b.position[2]),
+            a.position[0].min(b.position[0]), // 3D空间中X轴方向上的最小值
+            a.position[1].min(b.position[1]), // 3D空间中Y轴方向上的最小值
+            a.position[2].min(b.position[2]), // 3D空间中Z轴方向上的最小值
         ],
     }
 }
 
+// 计算两个位置的最大值
+pub fn max_p(a: Position, b: Position) -> Position {
+    Position {
+        position: [
+            a.position[0].max(b.position[0]), // 3D空间中X轴方向上的最大值
+            a.position[1].max(b.position[1]), // 3D空间中Y轴方向上的最大值
+            a.position[2].max(b.position[2]), // 3D空间中Z轴方向上的最大值
+        ],
+    }
+}
+// 生成区域的函数
 pub fn gen_area(
     area: &mut Area,
     faces: &[(usize, usize, usize)],
