@@ -22,5 +22,6 @@
         "cstdarg": "cpp",
         "cstdint": "cpp",
         "ostream": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "E:/learn/workspace/box_gen/testing"
 }

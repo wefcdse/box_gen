@@ -16,6 +16,7 @@ lazy_static = "1.5.0"
 utm = "0.1.6"
 nalgebra = "0.33.2"
 stupid_utils = "*"
+impl_here = "*"
 
 [profile.dev]
 opt-level = 3

@@ -3,8 +3,10 @@ use std::{f64::consts::PI, fs, io::BufWriter, path::PathBuf};
 
 use box_gen::{
     cacl::{
+        jwd经纬度到xy,
         lerp::Lerp,
         point::{Point2Trait, PointTrait},
+        到经纬度,
     },
     config::CONFIG,
     path_planning::{AsMove, Crane},
@@ -12,7 +14,7 @@ use box_gen::{
     time,
     utils::{
         index_xyz::{self, Z},
-        write_line_to_obj, write_line_to_obj_r90, Counter,
+        write_line_to_obj, write_line_to_obj_r90, Counter, Extend,
     },
 };
 use rand::random;
@@ -23,18 +25,26 @@ fn main() {
     time!(main);
     run_config();
     // run_scan_scene();
-    time!(main, "main")
+    time!(main, "main");
 }
 fn run_config() {
     let rad_to_deg = 180. / PI;
+    let base = CONFIG.基准点经纬度高度.to_xyz();
+    let 吊车回转中心水平坐标和变幅中心垂直坐标 = CONFIG
+        .吊车回转中心水平经纬度和变幅中心高度
+        .to_xyz()
+        .sub(base);
+    let 起始点 = CONFIG.起始点经纬度高度.to_xyz().sub(base);
+    let 目标点 = CONFIG.目标点经纬度高度.to_xyz().sub(base);
+
     // let config = &(18.981, -1., [-15.6384, -10.2941, -11.8289]);
     let config = &(
         CONFIG.吊臂长度,
         CONFIG.变幅中心对回转中心偏移,
-        CONFIG.吊车回转中心水平坐标和变幅中心垂直坐标,
+        吊车回转中心水平坐标和变幅中心垂直坐标,
     );
     let moveset = Crane::new(config);
-    let (t0, t1, l) = dbg!(moveset.position_to_pose(CONFIG.起始点));
+    let (t0, t1, l) = dbg!(moveset.position_to_pose(起始点));
     dbg!(t1 * rad_to_deg);
     let area = Area::gen_from_obj_file(
         &CONFIG.文件名称,
@@ -62,7 +72,7 @@ fn run_config() {
     )
     .unwrap();
     let path = {
-        let (start, end) = (CONFIG.起始点, CONFIG.目标点);
+        let (start, end) = (起始点, 目标点);
         // let (start, end) = (
         //     [-6.454714, -2.040601, 0.597431],
         //     [-2.407892, -6.342020, 0.597431],
@@ -82,7 +92,7 @@ fn run_config() {
         let paths = (0..CONFIG.rrt路径生成次数)
             .into_par_iter()
             .map(|_i| {
-                let p = rrt_move::<2, Crane>(config, &area, start, end, CONFIG.rrt最大尝试采样次数);
+                let p = rrt_move::<3, Crane>(config, &area, start, end, CONFIG.rrt最大尝试采样次数);
                 // dbg!(i);
                 counter.count();
                 if counter.show() % 10 == 0 {
@@ -133,14 +143,19 @@ fn run_config() {
             .open("temp/rrt_move.csv")
             .unwrap();
         let rad_to_deg = 180. / PI;
+
+        let (t01, t02, l) = moveset.position_to_pose(起始点);
+        let 输出回转修正 = CONFIG.初始回转 - t01 * rad_to_deg;
+        let 输出变幅修正 = CONFIG.初始变幅 - t02 * rad_to_deg;
+        let 输出绳长修正 = CONFIG.初始绳长 - l;
         for p in v {
             let (t1, t2, l) = moveset.position_to_pose(p);
             writeln!(
                 of,
                 "{:.4},{:.4},{:.4}",
-                t1 * rad_to_deg - CONFIG.输出回转修正,
-                t2 * rad_to_deg + CONFIG.输出变幅修正,
-                l
+                t1 * rad_to_deg + 输出回转修正,
+                t2 * rad_to_deg + 输出变幅修正,
+                l + 输出绳长修正
             )
             .unwrap();
         }
@@ -794,7 +809,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         });
         counter += 1;
         use index_xyz::*;
-        if ([next_p[X], next_p[Y], 0.], [end[X], end[Y], 0.]).length2()
+        if ([next_p[X], next_p[Y], next_p[Z]], [end[X], end[Y], end[Z]]).length2()
             <= step_length
                 * step_length
                 * CONFIG.rrt终止点最大距离对block倍数

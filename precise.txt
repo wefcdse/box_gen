@@ -1,0 +1,8 @@
+吊臂长度
+变幅中心对回转中心偏移
+摄像头    let direction_vec = [-1.1088444, 0.543789, 7.8212];
+激光测距    let position_vec = direction_vec.scale(61. / direction_vec[2]);
+gps yaw deg    let yaw_deg_gps = 99.572;
+   
+吊车经纬度   let 吊车世界坐标系 = [-0.693349, 6.783254, 0.933409];
+目标点经纬度    let 目标点局部坐标系 = [0., 0., 0.];

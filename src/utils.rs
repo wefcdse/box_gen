@@ -279,3 +279,10 @@ impl<T> Wrap<[T; 2]> {
         [a, b, next]
     }
 }
+#[impl_here::impl_here(Extend)]
+impl [f64; 2] {
+    pub fn extend_one(self, next: f64) -> [f64; 3] {
+        let [a, b] = self;
+        [a, b, next]
+    }
+}

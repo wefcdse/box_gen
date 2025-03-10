@@ -1,0 +1,23 @@
+{
+  "row": 0.0,
+  "col": 0.0,
+  "laser": 0.0,
+  "autobodyx": 0.0,
+  "autobodyy": 0.0,
+  "autobodyz": 0.0,
+  "Targetx": 0.0,
+  "Targety": 0.0,
+  "Targetz": 0.0,
+  "Arm_head_Pitch": 0.0,
+  "Arm_heading": 0.0,
+  "hookx": 0.0,
+  "hooky": 0.0,
+  "hookz": 0.0,
+  "hook_Pitch": 0.0,
+  "hook_heading": 0.0,
+  "Arm_headx": 0.0,
+  "Arm_heady": 0.0,
+  "Arm_headz": 0.0,
+  "target_Pitch": 0.0,
+  "target_heading": 0.0
+}

@@ -1,0 +1,20 @@
+{
+    "tasks": [
+        {
+            "type": "cargo",
+            "command": "run",
+            "args": [
+                "--bin",
+                "rrt"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "label": "rust: cargo build"
+        }
+    ]
+}

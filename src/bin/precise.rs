@@ -1,12 +1,37 @@
-use std::{f64::consts::PI, fs};
+use std::{f64::consts::PI, fs, path::PathBuf};
 
 use box_gen::{
     cacl::{jwd经纬度到xy, point::PointTrait},
     path_planning::{AsMove, Crane},
     utils::local_wrap::WrapSelf,
 };
+use clap::Parser;
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct Vars {
+    row: f64,
+    col: f64,
+    laser: f64,
+    target_heading: f64,
+    autobodyx: f64,
+    autobodyy: f64,
+    autobodyz: f64,
+    rotation: f64,
+    amplitude: f64,
+    rope: f64,
+}
+#[derive(Debug, Parser)]
+struct Args {
+    input: PathBuf,
+    output: PathBuf,
+}
 
 fn main() {
+    let args = Args::parse();
+    // 读取json文件
+    let vars = serde_json::from_str::<Vars>(&fs::read_to_string(args.input).unwrap()).unwrap();
+
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     let 吊臂长度 = 5.86;
     let 变幅中心对回转中心偏移 = -0.262292;
@@ -18,12 +43,20 @@ fn main() {
     let direction_vec = [2.0088712, 0.05344, 7.8212];
     let direction_vec = [-1.5085642165859, 3.21265577020832, 7.8212];
     let direction_vec = [-1.1088444, 0.543789, 7.8212];
+
+    // Tb_Center_Y.Text = rowCenter.ToString()
+    // Tb_Center_X.Text = colCenter.ToString()
+
+    let direction_vec = [vars.col, vars.row, 7.8212];
+
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     let position_vec = direction_vec.scale(61. / direction_vec[2]);
+    let position_vec = direction_vec.scale(vars.laser / direction_vec[2]);
 
     dbg!(position_vec);
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     let yaw_deg_gps = 99.572;
+    let yaw_deg_gps = vars.target_heading;
 
     let yaw_deg = 270. - yaw_deg_gps;
     let deg_to_rad = PI / 180.;
@@ -36,6 +69,7 @@ fn main() {
     let [x, y] = [x * cos - y * sin, x * sin + y * cos];
     let position_vec = [x, y, z];
     dbg!(position_vec);
+    let position_vec = [0., 0., 0.];
     // real = 0,-23
 
     // let 吊车经纬度高度 = [121.509592444, 38.880311618, 82.283];
@@ -50,10 +84,12 @@ fn main() {
     //     .extend_one(定位坐标原点经纬度高度[2]);
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     let 吊车世界坐标系 = [-0.693349, 6.783254, 0.933409];
+    let 吊车世界坐标系 = [vars.autobodyx, vars.autobodyy, vars.autobodyz];
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     let 定位点世界坐标系 = [-1.055474437889643, -1.3575758170336485, 0.6529999999999987];
     let 定位点世界坐标系 = [-0.9611894839326851, -1.4975408306345344, 0.6529999999999987];
     let 定位点世界坐标系 = [-2.252729, 1.757616, 0.304000];
+    let 定位点世界坐标系 = [0., 0., 0.];
     // let dbg目标点世界坐标系 = jwd经纬度到xy(dbg目标点经纬度高度[0], dbg目标点经纬度高度[1])
     //     .wrap()
     //     .extend_one(dbg目标点经纬度高度[2]);
@@ -89,9 +125,18 @@ fn main() {
     let rad2deg = 180. / PI;
     let (st1, st2, sl) = (st1 * t1 * rad2deg, st2 * t2 * rad2deg, sl * l);
     dbg!(st1, st2, sl);
-    fs::write("./temp/d.txt", format!("{},{},{}", dt0, dt1, dl)).unwrap();
+    // fs::write(args.output, format!("{},{},{}", dt0, dt1, dl)).unwrap();
     // dbg!(base.transpose().determinant());
     // println!("{:.5}", base);
     // dbg!(base.is_invertible());
     // dbg!(position);
+
+    let (st0, st1, sl) = (vars.rotation, vars.amplitude, vars.rope);
+    let (dt0, dt1, dl) = (dt0, dt1, dl);
+    let mut o = String::new();
+    o += &format!("{:.4},{:.4},{:.4}\n", st0, st1, sl);
+    o += &format!("{:.4},{:.4},{:.4}\n", st0 + dt0, st1, sl);
+    o += &format!("{:.4},{:.4},{:.4}\n", st0 + dt0, st1 + dt1, sl);
+    o += &format!("{:.4},{:.4},{:.4}\n", st0 + dt0, st1 + dt1, sl + dl);
+    fs::write(args.output, o).unwrap();
 }

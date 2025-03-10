@@ -1,3 +1,4 @@
+use impl_here::impl_here;
 use obj::Position;
 
 use crate::{config::CONFIG, support_type::Area, time};
@@ -307,4 +308,12 @@ pub fn jwd经纬度到xy(经度: f64, 纬度: f64) -> [f64; 2] {
     dbg!(z1);
     let (y, x, _) = utm::to_utm_wgs84(纬度, 经度, z1);
     [x, y]
+}
+
+#[impl_here(到经纬度)]
+impl [f64; 3] {
+    pub fn to_xyz(&self) -> [f64; 3] {
+        let [x, y] = jwd经纬度到xy(self[0], self[1]);
+        [x, y, self[2]]
+    }
 }
