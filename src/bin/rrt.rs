@@ -62,6 +62,19 @@ fn run_config() {
             .unwrap(),
     ))
     .unwrap();
+    write_line_to_obj(
+        &mut BufWriter::new(
+            fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open("temp/info_crane_start_end.obj")
+                .unwrap(),
+        ),
+        [吊车回转中心水平坐标和变幅中心垂直坐标, 起始点, 目标点],
+    )
+    .unwrap();
+
     area.write_info(
         &mut fs::OpenOptions::new()
             .create(true)
