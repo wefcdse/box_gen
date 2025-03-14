@@ -9,6 +9,7 @@ pub trait AsMove<const L: usize> {
     fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3];
     fn default_move(&self) -> usize;
     fn valid(&self, area: &Area, pos: [f64; 3]) -> bool;
+    fn mercy(&self, area: &Area, pos: [f64; 3], next_step: isize) -> bool;
 }
 #[allow(unused, clippy::upper_case_acronyms)]
 struct XYZ;
@@ -44,6 +45,9 @@ impl AsMove<3> for XYZ {
 
     fn valid(&self, _: &Area, _: [f64; 3]) -> bool {
         true
+    }
+    fn mercy(&self, _: &Area, _: [f64; 3], _: isize) -> bool {
+        false
     }
 }
 #[test]
@@ -212,9 +216,23 @@ impl AsMove<3> for Crane {
         //     (t2 > 0. && t2 < (PI / 180. * 75.)),
         //     !area.collide_line(start_p, end_p)
         // ));
+        // println!("{}", next_step);
         l > 0.
             && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度))
-                & !area.collide_line(start_p, end_p)
+                & (!area.collide_line(start_p, end_p))
+    }
+    fn mercy(&self, area: &Area, pos: [f64; 3], next_step: isize) -> bool {
+        let (t1, t2, l) = self.position_to_pose(pos);
+        let start_p = self.pose_to_position((t1, PI / 2., self.l));
+
+        let end_p = self.pose_to_position((t1, t2, 0.));
+        // dbg!((t1, t2, l));
+        // dbg!((
+        //     l > 4.,
+        //     (t2 > 0. && t2 < (PI / 180. * 75.)),
+        //     !area.collide_line(start_p, end_p)
+        // ));
+        l > 0. && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度)) & (next_step == -2)
     }
 }
 impl AsMove<2> for Crane {
@@ -260,6 +278,14 @@ impl AsMove<2> for Crane {
     }
 
     fn valid(&self, area: &Area, pos: [f64; 3]) -> bool {
+        let (t1, t2, l) = self.position_to_pose(pos);
+        let start_p = self.pose_to_position((t1, PI / 2., self.l));
+        let end_p = self.pose_to_position((t1, t2, 0.));
+        l > 0.
+            && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度))
+                & !area.collide_line(start_p, end_p)
+    }
+    fn mercy(&self, area: &Area, pos: [f64; 3], _: isize) -> bool {
         let (t1, t2, l) = self.position_to_pose(pos);
         let start_p = self.pose_to_position((t1, PI / 2., self.l));
         let end_p = self.pose_to_position((t1, t2, 0.));

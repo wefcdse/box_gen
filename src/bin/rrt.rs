@@ -798,20 +798,36 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         // dbg!(step);
         let next_p = moveset.apply(base_point, nearest_idx, step);
         // let next_p = base_point.add(direction.scale(step_length));
-
+        let next_step = step.signum() as isize * nearest_idx as isize;
         if !moveset.valid(area, next_p)
             || area.collide_point(next_p)
             || area.collide_line(base_point, next_p)
         {
+            if !moveset.mercy(area, next_p, next_step) {
+                continue;
+            } else {
+                // continue;
+                // println!(
+                //     "valid: {},{},{}",
+                //     moveset.valid(area, next_p),
+                //     moveset.mercy(area, next_p, next_step),
+                //     next_step
+                // );
+            }
             // let len = route.len();
-            // dbg!(
+            // dbg!P
             //     len,
             //     next_p,
             //     moveset.valid(area, next_p),
             //     area.collide_point(next_p),
             //     area.collide_line(base_point, next_p)
             // );
-            continue;
+            // println!(
+            //     "p {},{}",
+            //     area.collide_point(next_p),
+            //     area.collide_line(base_point, next_p),
+            //     next_step
+            // );
         }
         // route.push((base_idx, next_p));
         route.push(Node {
