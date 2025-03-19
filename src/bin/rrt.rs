@@ -120,7 +120,7 @@ fn run_config() {
         // best_path
         paths
             .into_iter()
-            .min_by(|a, b| eval(a).cmp(&eval(b)))
+            .min_by(|a, b| eval2(a, end).cmp(&eval2(b, end)))
             .unwrap_or(Vec::from([(start, 0, 0.), (end, 0, 0.)]))
     };
     write_line_to_obj(
@@ -839,11 +839,12 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
         });
         counter += 1;
         use index_xyz::*;
-        if ([next_p[X], next_p[Y], next_p[Z]], [end[X], end[Y], end[Z]]).length2()
-            <= step_length
-                * step_length
+        if ([next_p[X], next_p[Y], 0.], [end[X], end[Y], 0.]).length2()
+            <= area.block_width()
+                * area.block_width()
                 * CONFIG.rrt终止点最大距离对block倍数
                 * CONFIG.rrt终止点最大距离对block倍数
+            && (next_p[Z] - end[Z]).abs() < CONFIG.rrt终止点最大距离对block倍数 * step_length
             && (!area.collide_line(next_p, end) || moveset.mercy(area, next_p, next_step) || true)
         // && ((next_p[Z] - end[Z]).abs() < step_length * 5.)
         // && next_p[Z] >= end[Z]
@@ -877,8 +878,27 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
 }
 
 fn eval(path: &[([f64; 3], usize, f64)]) -> usize {
+    let pos = path.last().unwrap().0;
     let mut fix: isize = 0;
     let mut last_move = 2;
+    for (_, m, _) in path.iter().copied() {
+        if last_move != m {
+            fix += CONFIG.rrt动作切换惩罚系数 as isize;
+        }
+        last_move = m;
+        if m == 2 {
+            fix -= 3;
+        }
+    }
+    (path.len() as isize + fix).clamp(0, isize::MAX) as usize
+}
+fn eval2(path: &[([f64; 3], usize, f64)], end: [f64; 3]) -> usize {
+    // let pos = path[path.len() - 2].0;
+    // let l = pos.sub(end).length2() * 1000.;
+    // dbg!(l);
+    // return l as usize;
+    let mut fix: isize = 0;
+    let mut last_move: usize = 2;
     for (_, m, _) in path.iter().copied() {
         if last_move != m {
             fix += CONFIG.rrt动作切换惩罚系数 as isize;
