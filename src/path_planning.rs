@@ -232,7 +232,7 @@ impl AsMove<3> for Crane {
         //     (t2 > 0. && t2 < (PI / 180. * 75.)),
         //     !area.collide_line(start_p, end_p)
         // ));
-        l > 0. && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度)) & (next_step == -2)
+        l > 0. && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度)) && (next_step.abs() == 2)
     }
 }
 impl AsMove<2> for Crane {

@@ -1,5 +1,5 @@
 use core::f64;
-use std::{f64::consts::PI, fs, io::BufWriter, path::PathBuf};
+use std::{f64::consts::PI, fs, io::BufWriter, isize, path::PathBuf};
 
 use box_gen::{
     cacl::{
@@ -20,6 +20,7 @@ use box_gen::{
 use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::io::Write;
+use stupid_utils::select::DotSelect;
 
 fn main() {
     time!(main);
@@ -782,7 +783,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
                     + if idx == from_move_idx {
                         // random::<f64>() * 0.9
                         // 1. * random::<f64>()
-                        CONFIG.rrt动作保持强度 * random::<f64>()
+                        CONFIG.rrt动作保持强度 * (idx == 2).select(3., 1.) * random::<f64>()
                     } else {
                         0.0
                     };
@@ -843,7 +844,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
                 * step_length
                 * CONFIG.rrt终止点最大距离对block倍数
                 * CONFIG.rrt终止点最大距离对block倍数
-            && !area.collide_line(next_p, end)
+            && (!area.collide_line(next_p, end) || moveset.mercy(area, next_p, next_step) || true)
         // && ((next_p[Z] - end[Z]).abs() < step_length * 5.)
         // && next_p[Z] >= end[Z]
         {
@@ -876,15 +877,18 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
 }
 
 fn eval(path: &[([f64; 3], usize, f64)]) -> usize {
-    let mut fix = 0;
-    let mut last_move = path[0].1;
+    let mut fix: isize = 0;
+    let mut last_move = 2;
     for (_, m, _) in path.iter().copied() {
         if last_move != m {
-            fix += CONFIG.rrt动作切换惩罚系数;
+            fix += CONFIG.rrt动作切换惩罚系数 as isize;
         }
         last_move = m;
+        if m == 2 {
+            fix -= 3;
+        }
     }
-    path.len() + fix
+    (path.len() as isize + fix).clamp(0, isize::MAX) as usize
 }
 
 #[test]

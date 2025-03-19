@@ -18,7 +18,7 @@ struct Vars {
     rotation: f64,
     amplitude: f64,
     rope: f64,
-    ARM_LENGTH: f64,
+    臂长: f64,
     变幅相对回转中心偏移: f64,
     // 目标点局部坐标系: [f64; 3],
     就位点相对坐标X: f64,
@@ -39,7 +39,7 @@ fn main() {
     let vars = serde_json::from_str::<Vars>(&fs::read_to_string(args.input).unwrap()).unwrap();
     dbg!(&vars);
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    let 吊臂长度 = vars.ARM_LENGTH;
+    let 吊臂长度 = vars.臂长;
     let 变幅中心对回转中心偏移 = vars.变幅相对回转中心偏移;
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
