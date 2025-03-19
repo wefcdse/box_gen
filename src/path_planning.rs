@@ -10,6 +10,9 @@ pub trait AsMove<const L: usize> {
     fn default_move(&self) -> usize;
     fn valid(&self, area: &Area, pos: [f64; 3]) -> bool;
     fn mercy(&self, area: &Area, pos: [f64; 3], next_step: isize) -> bool;
+    fn neared(&self, pos: [f64; 3], end: [f64; 3], from_move: usize, th: f64) -> bool {
+        unimplemented!()
+    }
 }
 #[allow(unused, clippy::upper_case_acronyms)]
 struct XYZ;
@@ -233,6 +236,19 @@ impl AsMove<3> for Crane {
         //     !area.collide_line(start_p, end_p)
         // ));
         l > 0. && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度)) && (next_step.abs() == 2)
+    }
+    fn neared(&self, pos: [f64; 3], end: [f64; 3], from_move: usize, th: f64) -> bool {
+        let [x, y, _] = pos.sub(self.base);
+        let th_rad1 = th / (x * x + y * y).sqrt();
+        let th_rad2 = th / self.l;
+        let (t1, t2, l) = self.position_to_pose(pos);
+        let (t1_end, t2_end, l_end) = self.position_to_pose(end);
+        match from_move {
+            0 => (t1 - t1_end).abs() < th_rad1,
+            1 => (t2 - t2_end).abs() < th_rad2,
+            2 => (l - l_end).abs() < th,
+            _ => unreachable!(),
+        }
     }
 }
 impl AsMove<2> for Crane {

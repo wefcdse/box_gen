@@ -10,7 +10,7 @@ pub struct AppConfig {
     pub rrt最大尝试采样次数: usize,
     pub rrt路径生成次数: usize,
     pub rrt终止点最大距离对block倍数: f64,
-    pub rrt动作切换惩罚系数: usize,
+    pub rrt动作切换惩罚系数: f64,
     pub rrt动作保持强度: f64,
 
     pub 文件名称: PathBuf,
@@ -40,7 +40,7 @@ impl Default for AppConfig {
             rrt最大尝试采样次数: 5000,
             rrt路径生成次数: 1024,
             rrt终止点最大距离对block倍数: 2.0,
-            rrt动作切换惩罚系数: 100,
+            rrt动作切换惩罚系数: 100.,
             rrt动作保持强度: 2.,
 
             文件名称: r#"C:\Users\yaoyj\Desktop\2024-12-10\env.obj"#.into(),
