@@ -12,3 +12,4 @@ testing/.vscode
 temp
 !模拟场景1.blend
 *.7z
+*.jpg
