@@ -167,7 +167,7 @@ fn run_config() {
             writeln!(
                 of,
                 "{:.4},{:.4},{:.4}",
-                t1 * rad_to_deg + 输出回转修正,
+                t1 * rad_to_deg + 输出回转修正 + CONFIG.回转修正参数,
                 t2 * rad_to_deg + 输出变幅修正,
                 l + 输出绳长修正
             )
@@ -252,7 +252,7 @@ fn rrt_move<const L: usize, M: AsMove<L>>(
                     + if idx == from_move_idx {
                         // random::<f64>() * 0.9
                         // 1. * random::<f64>()
-                        CONFIG.rrt动作保持强度 * (idx == 2).select(3., 1.) * random::<f64>()
+                        CONFIG.rrt动作保持强度 * random::<f64>()
                     } else {
                         moveset
                             .neared(base_point, end, from_move_idx, step_length / 2.)
