@@ -205,7 +205,7 @@ impl AsMove<3> for Crane {
     }
 
     fn default_move(&self) -> usize {
-        2
+        CONFIG.初始动作
     }
 
     fn valid(&self, area: &Area, pos: [f64; 3]) -> bool {

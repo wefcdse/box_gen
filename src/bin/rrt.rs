@@ -379,5 +379,6 @@ fn eval2(path: &[([f64; 3], usize, f64)], end: [f64; 3]) -> f64 {
             fix -= 0.7;
         }
     }
-    path.len() as f64 + fix
+    dbg!(last_move);
+    path.len() as f64 + fix + (last_move == 0).select(0., 0.)
 }

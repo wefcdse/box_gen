@@ -33,6 +33,7 @@ pub struct AppConfig {
     pub 初始绳长: f64,
 
     pub 回转修正参数: f64,
+    pub 初始动作: usize,
 }
 
 impl Default for AppConfig {
@@ -65,6 +66,7 @@ impl Default for AppConfig {
             初始绳长: 0.0,
 
             回转修正参数: 1.2,
+            初始动作: 2,
         }
     }
 }
