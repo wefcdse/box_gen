@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::{fs, path::PathBuf};
 
-use crate::utils::StringErr;
+use box_gen::utils::StringErr;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {

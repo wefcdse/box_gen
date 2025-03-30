@@ -1,7 +1,7 @@
 use impl_here::impl_here;
 use obj::Position;
 
-use crate::{config::CONFIG, support_type::Area, time};
+use crate::{support_type::Area, time};
 
 // 计算两个位置的最小值
 pub fn min_p(a: Position, b: Position) -> Position {
@@ -32,8 +32,9 @@ pub fn gen_area(
     offs_high: f64,
     offs: f64,
     max: &Position,
+    包围盒扩大距离: f64,
 ) {
-    let wider = (CONFIG.包围盒扩大距离 / area.block_width()).ceil() as usize;
+    let wider = (包围盒扩大距离 / area.block_width()).ceil() as usize;
     dbg!(wider);
     time!(fa);
     for (idx, (a, b, c)) in faces.iter().copied().enumerate() {

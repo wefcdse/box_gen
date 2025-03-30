@@ -1,6 +1,6 @@
 use std::{f64::consts::PI, ops::Sub};
 
-use crate::{cacl::point::PointTrait, config::CONFIG, disable, support_type::Area};
+use crate::{cacl::point::PointTrait, disable, support_type::Area};
 
 pub trait AsMove<const L: usize> {
     type Config;
@@ -14,66 +14,23 @@ pub trait AsMove<const L: usize> {
         unimplemented!()
     }
 }
-#[allow(unused, clippy::upper_case_acronyms)]
-struct XYZ;
-impl AsMove<3> for XYZ {
-    type Config = ();
-
-    fn new(_: &Self::Config) -> Self {
-        Self
-    }
-
-    fn normals(&self, _: [f64; 3]) -> [[f64; 3]; 3] {
-        // [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]]
-        // [
-        //     [1., 1., 0.].normal(),
-        //     [0., 1., 1.].normal(),
-        //     [1., 0., 2.].normal(),
-        // ]
-        [
-            [0.09275263006051904, 0.5062427205635203, 0.08394260037843648].normal(),
-            [0.505252002327924, 0.0036806377496515497, 0.6857313789597959].normal(),
-            [0.7530463184535672, 0.3125142326453717, 0.05447322306410152].normal(),
-        ]
-    }
-
-    fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
-        let p = self.normals(pos)[sel_idx].scale(step);
-        pos.add(p)
-    }
-
-    fn default_move(&self) -> usize {
-        0
-    }
-
-    fn valid(&self, _: &Area, _: [f64; 3]) -> bool {
-        true
-    }
-    fn mercy(&self, _: &Area, _: [f64; 3], _: isize) -> bool {
-        false
-    }
-}
-#[test]
-fn d() {
-    use rand::random;
-
-    println!("{:?}.normal(),", random::<[f64; 3]>());
-    println!("{:?}.normal(),", random::<[f64; 3]>());
-    println!("{:?}.normal(),", random::<[f64; 3]>());
-}
 
 pub struct Crane {
     l: f64,
     yaw_offs: f64,
     base: [f64; 3],
+    default_move: usize,
+    max变幅: f64,
 }
 
 impl Crane {
-    pub fn new(config: &(f64, f64, [f64; 3])) -> Self {
+    pub fn new(config: &(f64, f64, [f64; 3], usize, f64)) -> Self {
         Self {
             l: config.0,
             yaw_offs: config.1,
             base: config.2,
+            default_move: config.3,
+            max变幅: config.4,
         }
     }
     pub fn position_to_pose(&self, pos: [f64; 3]) -> (f64, f64, f64) {
@@ -111,6 +68,9 @@ fn a() {
         l: 40.,
         yaw_offs: 60.,
         base: [0., 0., 100.],
+
+        default_move: 0,
+        max变幅: 80.,
     };
     let p = [70., 70., -12.];
     assert!([p[X] - d.base[X], p[Y] - d.base[Y], 0.].length() < (d.l + d.yaw_offs));
@@ -167,13 +127,15 @@ impl Crane {
     }
 }
 impl AsMove<3> for Crane {
-    type Config = (f64, f64, [f64; 3]);
+    type Config = (f64, f64, [f64; 3], usize, f64);
 
     fn new(config: &Self::Config) -> Self {
         Self {
             l: config.0,
             yaw_offs: config.1,
             base: config.2,
+            default_move: config.3,
+            max变幅: config.4,
         }
     }
 
@@ -205,7 +167,7 @@ impl AsMove<3> for Crane {
     }
 
     fn default_move(&self) -> usize {
-        CONFIG.初始动作
+        self.default_move
     }
 
     fn valid(&self, area: &Area, pos: [f64; 3]) -> bool {
@@ -221,8 +183,7 @@ impl AsMove<3> for Crane {
         // ));
         // println!("{}", next_step);
         l > 0.
-            && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度))
-                & (!area.collide_line(start_p, end_p))
+            && (t2 > 0. && t2 < (PI / 180. * self.max变幅)) & (!area.collide_line(start_p, end_p))
     }
     fn mercy(&self, area: &Area, pos: [f64; 3], next_step: isize) -> bool {
         let (t1, t2, l) = self.position_to_pose(pos);
@@ -235,7 +196,7 @@ impl AsMove<3> for Crane {
         //     (t2 > 0. && t2 < (PI / 180. * 75.)),
         //     !area.collide_line(start_p, end_p)
         // ));
-        l > 0. && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度)) && (next_step.abs() == 2)
+        l > 0. && (t2 > 0. && t2 < (PI / 180. * self.max变幅)) && (next_step.abs() == 2)
     }
     fn neared(&self, pos: [f64; 3], end: [f64; 3], from_move: usize, th: f64) -> bool {
         let [x, y, _] = pos.sub(self.base);
@@ -249,64 +210,5 @@ impl AsMove<3> for Crane {
             2 => (l - l_end).abs() < th,
             _ => unreachable!(),
         }
-    }
-}
-impl AsMove<2> for Crane {
-    type Config = (f64, f64, [f64; 3]);
-
-    fn new(config: &Self::Config) -> Self {
-        Self {
-            l: config.0,
-            yaw_offs: config.1,
-            base: config.2,
-        }
-    }
-
-    fn normals(&self, pos: [f64; 3]) -> [[f64; 3]; 2] {
-        // let [x, y, z] = pos.sub(self.base);
-        let (t1, t2, _) = self.position_to_pose(pos);
-        // dbg!([-t1.sin(), t1.cos(), 0.]);
-        // dbg!([-t2.sin() * -t1.sin(), -t2.sin() * t1.cos(), t2.cos()]);
-        let t1pos_normal = [-t1.sin(), t1.cos(), 0.];
-        let t2pos_normal = [-t2.sin() * t1.cos(), -t2.sin() * t1.sin(), t2.cos()];
-        // let t1pos_normal = [0., 0., 1.].cross([x, y, 0.]).normal();
-        // let t2pos_normal = t1pos_normal.cross([x, y, z]).normal();
-        [t1pos_normal, t2pos_normal]
-    }
-
-    fn apply(&self, pos: [f64; 3], sel_idx: usize, step: f64) -> [f64; 3] {
-        // const PI: f64 = std::f64::consts::PI;
-        let [x, y, _] = pos.sub(self.base);
-        let step_rad1 = step / (x * x + y * y).sqrt();
-        let step_rad2 = step / self.l;
-        let (t1, t2, l) = self.position_to_pose(pos);
-        let pose1 = match sel_idx {
-            0 => (t1 + step_rad1, t2, l),
-            1 => (t1, t2 + step_rad2, l),
-            2 => (t1, t2, l + step),
-            _ => unreachable!(),
-        };
-        self.pose_to_position(pose1)
-    }
-
-    fn default_move(&self) -> usize {
-        1
-    }
-
-    fn valid(&self, area: &Area, pos: [f64; 3]) -> bool {
-        let (t1, t2, l) = self.position_to_pose(pos);
-        let start_p = self.pose_to_position((t1, PI / 2., self.l));
-        let end_p = self.pose_to_position((t1, t2, 0.));
-        l > 0.
-            && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度))
-                & !area.collide_line(start_p, end_p)
-    }
-    fn mercy(&self, area: &Area, pos: [f64; 3], _: isize) -> bool {
-        let (t1, t2, l) = self.position_to_pose(pos);
-        let start_p = self.pose_to_position((t1, PI / 2., self.l));
-        let end_p = self.pose_to_position((t1, t2, 0.));
-        l > 0.
-            && (t2 > 0. && t2 < (PI / 180. * CONFIG.吊车最大变幅角度))
-                & !area.collide_line(start_p, end_p)
     }
 }

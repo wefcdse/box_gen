@@ -15,6 +15,7 @@ impl Area {
         offs_high: f64,
         offs_low: f64,
         offs: f64,
+        包围盒扩大距离: f64,
     ) -> Self {
         let input = BufReader::new(File::open(file).unwrap());
         time!(prase);
@@ -66,6 +67,7 @@ impl Area {
             offs_high,
             offs,
             &max,
+            包围盒扩大距离,
         );
         // dbg!(faces.len());
         area

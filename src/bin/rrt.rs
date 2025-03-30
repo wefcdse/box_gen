@@ -1,6 +1,7 @@
 use core::f64;
 use std::{f64::consts::PI, fs, io::BufWriter, isize, path::PathBuf};
-
+#[path = "../config.rs"]
+pub mod config;
 use box_gen::{
     cacl::{
         jwd经纬度到xy,
@@ -8,7 +9,6 @@ use box_gen::{
         point::{Point2Trait, PointTrait},
         到经纬度,
     },
-    config::CONFIG,
     path_planning::{AsMove, Crane},
     support_type::Area,
     time,
@@ -17,6 +17,7 @@ use box_gen::{
         write_line_to_obj, write_line_to_obj_r90, Counter, Extend,
     },
 };
+use config::*;
 use rand::random;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::io::Write;
@@ -43,6 +44,8 @@ fn run_config() {
         CONFIG.吊臂长度,
         CONFIG.变幅中心对回转中心偏移,
         吊车回转中心水平坐标和变幅中心垂直坐标,
+        CONFIG.初始动作,
+        CONFIG.吊车最大变幅角度,
     );
     let moveset = Crane::new(config);
     let (t0, t1, l) = dbg!(moveset.position_to_pose(起始点));
@@ -53,6 +56,7 @@ fn run_config() {
         CONFIG.上方偏移,
         CONFIG.下方偏移,
         CONFIG.偏移,
+        CONFIG.包围盒扩大距离,
     );
     area.write_to_obj(&mut BufWriter::new(
         fs::OpenOptions::new()
@@ -369,16 +373,18 @@ fn eval2(path: &[([f64; 3], usize, f64)], end: [f64; 3]) -> f64 {
     // dbg!(l);
     // return l as usize;
     let mut fix: f64 = 0.;
+    let mut last_move1: usize = 2;
     let mut last_move: usize = 2;
     for (_, m, _) in path.iter().copied() {
         if last_move != m {
             fix += CONFIG.rrt动作切换惩罚系数;
         }
+        last_move1 = last_move;
         last_move = m;
         if m == 2 {
             fix -= 0.7;
         }
     }
-    dbg!(last_move);
-    path.len() as f64 + fix + (last_move == 0).select(0., 0.)
+    dbg!(last_move1);
+    path.len() as f64 + fix + (last_move1 == 0).select(0., 0.)
 }

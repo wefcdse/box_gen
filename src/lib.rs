@@ -4,7 +4,6 @@ use support_type::Area;
 
 pub mod areagen;
 pub mod cacl;
-pub mod config;
 pub mod path_planning;
 pub mod support_type;
 pub mod utils;
@@ -19,9 +18,10 @@ pub unsafe extern "C" fn generate_from_obj(
     offs_high: f64,
     offs_low: f64,
     offs: f64,
+    包围盒扩大距离: f64,
 ) -> Box<Area> {
     let file_name = ffi::CStr::from_ptr(file_name).to_str().unwrap();
-    let area = Area::gen_from_obj_file(file_name, split, offs_high, offs_low, offs);
+    let area = Area::gen_from_obj_file(file_name, split, offs_high, offs_low, offs, 包围盒扩大距离);
     Box::new(area)
 }
 
